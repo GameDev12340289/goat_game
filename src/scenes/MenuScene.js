@@ -97,7 +97,7 @@ class MenuScene extends MenuBase {
     this.pickRoom(0);
 
     this.add.text(W / 2, H - 22,
-      'move: arrows / WASD    jump: C    dash: X    grab: Z    retry: R    menu: ESC    rampage: Q    shield: F',
+      'move: arrows / WASD    jump: C    dash: Right Shift    grab: W    retry: R    menu: ESC    rampage: Q    shield: F',
       uiText(15, { color: '#9fb0d8' })).setOrigin(0.5);
   }
 

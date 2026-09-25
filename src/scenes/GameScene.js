@@ -4,14 +4,28 @@ class GameScene extends Phaser.Scene {
 
   init(data) { this.startRoom = (data && data.room) || 0; }
 
+  // Duck-typed Key stand-in (isDown / _justDown) that only responds to the
+  // physical right Shift, since Phaser's SHIFT keycode matches either side.
+  rightShiftKey() {
+    const key = { isDown: false, _justDown: false };
+    const isRight = e => e.code === 'ShiftRight' || e.location === 2;
+    this.input.keyboard.on('keydown-SHIFT', e => {
+      if (!isRight(e)) return;
+      if (!key.isDown) key._justDown = true;
+      key.isDown = true;
+    });
+    this.input.keyboard.on('keyup-SHIFT', e => { if (isRight(e)) key.isDown = false; });
+    return key;
+  }
+
   create() {
     const K = Phaser.Input.Keyboard.KeyCodes;
     const add = codes => codes.map(c => this.input.keyboard.addKey(c));
     this.keys = {
       left: add([K.LEFT, K.A]), right: add([K.RIGHT, K.D]),
       up: add([K.UP, K.W]), down: add([K.DOWN, K.S]),
-      jump: add([K.C, K.SPACE, K.K]), dash: add([K.X, K.SHIFT, K.J]),
-      grab: add([K.Z, K.L]), rampage: add([K.Q, K.E]), deflect: add([K.F]), talk: add([K.V]), restart: add([K.R]), menu: add([K.ESC]), enter: add([K.ENTER]),
+      jump: add([K.C, K.SPACE, K.K]), dash: [this.rightShiftKey()],
+      grab: add([K.W, K.L]), rampage: add([K.Q, K.E]), deflect: add([K.F]), talk: add([K.V]), restart: add([K.R]), menu: add([K.ESC]), enter: add([K.ENTER]),
     };
 
     this.cameras.main.setBackgroundColor(0x0e1428).setZoom(CFG.ZOOM).centerOn(CFG.W / 2, CFG.H / 2);
