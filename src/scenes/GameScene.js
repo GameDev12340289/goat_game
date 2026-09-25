@@ -25,12 +25,13 @@ class GameScene extends Phaser.Scene {
       left: add([K.LEFT, K.A]), right: add([K.RIGHT, K.D]),
       up: add([K.UP, K.W]), down: add([K.DOWN, K.S]),
       jump: add([K.C, K.SPACE, K.K]), dash: [this.rightShiftKey()],
-      grab: add([K.W, K.L]), rampage: add([K.Q, K.E]), deflect: add([K.F]), talk: add([K.V]), restart: add([K.R]), menu: add([K.ESC]), enter: add([K.ENTER]),
+      grab: add([K.W, K.L]), rampage: add([K.Q, K.E]), deflect: add([K.F]), talk: add([K.V]), restart: add([K.R]), menu: add([K.ESC]), enter: add([K.ENTER]), quit: add([K.M]),
     };
 
     this.cameras.main.setBackgroundColor(0x0e1428).setZoom(CFG.ZOOM).centerOn(CFG.W / 2, CFG.H / 2);
     if (!this.scene.isActive('UI')) this.scene.launch('UI');
     this.game.events.emit('complete', '');
+    this.setPaused(false);
     this.roomObjs = [];
     this.deaths = 0; this.coinCount = 0; this.time_ = 0; this.hornsEarned = 0;
     this.collected = new Set();
@@ -58,7 +59,16 @@ class GameScene extends Phaser.Scene {
     this.player.runMax = CFG.RUN_MAX * (Save.has('swiftHooves') ? 1.1 : 1);
   }
 
+  // pause menu: the whole game loop stops (so nothing can hurt the goat) and the world's tweens / timers freeze with it
+  setPaused(on) {
+    this.paused = on;
+    if (on) this.tweens.pauseAll(); else this.tweens.resumeAll();
+    this.time.paused = on;
+    this.game.events.emit('pause', on);
+  }
+
   toMenu() {
+    this.setPaused(false);
     this.scene.stop('UI');
     this.scene.start('Menu');
   }
@@ -297,7 +307,16 @@ class GameScene extends Phaser.Scene {
     const restart = pressed(this.keys.restart);
     const enter = pressed(this.keys.enter);
 
-    if (pressed(this.keys.menu)) return this.toMenu();
+    if (pressed(this.keys.menu)) {
+      if (this.completed) return this.toMenu();
+      if (!this.transitioning) this.setPaused(!this.paused);
+      return;
+    }
+    if (this.paused) {
+      if (pressed(this.keys.quit)) return this.toMenu();
+      Object.values(this.keys).forEach(pressed);   // swallow presses made while paused so they don't fire on resume
+      return;
+    }
     if (this.completed) {
       if (enter) return this.toMenu();
       if (restart) this.scene.restart({ room: 0 });

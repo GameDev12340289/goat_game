@@ -15,6 +15,12 @@ class UIScene extends Phaser.Scene {
     this.complete = this.add.text(CFG.W * Z / 2, CFG.H * Z / 2, '', style(10, { align: 'center' }))
       .setOrigin(0.5);
 
+    this.pauseDim = this.add.rectangle(0, 0, CFG.W * Z, CFG.H * Z, 0x05060d, 0.6).setOrigin(0).setDepth(50);
+    this.pauseText = this.add.text(CFG.W * Z / 2, CFG.H * Z / 2 - 8 * Z, 'GAME PAUSED', style(20)).setOrigin(0.5).setDepth(51);
+    this.pauseHint = this.add.text(CFG.W * Z / 2, CFG.H * Z / 2 + 12 * Z, 'ESC  resume     M  menu', style(8, { color: '#9fb0d8' })).setOrigin(0.5).setDepth(51);
+    const showPause = on => [this.pauseDim, this.pauseText, this.pauseHint].forEach(o => o.setVisible(on));
+    showPause(false);
+
     const fade = (obj, delay) => {
       this.tweens.killTweensOf(obj);
       obj.setAlpha(1);
@@ -23,6 +29,7 @@ class UIScene extends Phaser.Scene {
     const handlers = {
       hud: t => this.hud.setText(t),
       complete: t => this.complete.setText(t),
+      pause: on => showPause(on),
       title: t => { this.title.setText(t); fade(this.title, 1200); },
       toast: t => { this.toast.setText(t); fade(this.toast, 1000); },
     };
