@@ -461,6 +461,7 @@ class GameScene extends Phaser.Scene {
     const horns = this.room.horns !== undefined ? this.room.horns
       : this.room.boss ? (this.room.finale ? CFG.HORNS_BOSS_DEFEATED : CFG.HORNS_PER_BOSS_ROOM) : 0;
     if (horns > 0) this.awardHorns(horns);
+    const beatFirstBoss = this.roomIndex === 18;      // escaping room 19 leads through door 20: the first boss is beaten
     const cam = this.cameras.main;
     cam.fadeOut(180, 14, 20, 40);
     cam.once('camerafadeoutcomplete', () => {
@@ -468,6 +469,7 @@ class GameScene extends Phaser.Scene {
       this.loadRoom(this.roomIndex + 1);
       cam.fadeIn(180, 14, 20, 40);
       this.showTitle(this.room.name);
+      if (beatFirstBoss) this.time.delayedCall(1800, () => this.showTitle('Your hide feels tougher than usual'));   // after the room name has faded
     });
   }
 
