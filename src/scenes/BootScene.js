@@ -29,7 +29,8 @@ class BootScene extends Phaser.Scene {
       g.fillRect(5, 2, 2, 1); g.fillRect(4, 1, 2, 1); g.fillRect(2, 0, 3, 1); g.fillRect(2, 1, 1, 1);
     });
 
-    // The Withered: a tall human, charcoal black skin, hollow pale eyes, a dim ember of a heart in the chest (drawn 14x56, shown 2x)
+    // The Withered: a tall, eyeless human with charcoal black skin and a dim ember of a heart in the chest (drawn 14x56, shown 2x).
+    // Its 22 long arms are drawn live by Withered.js, so only the raised pair for the desperate move is part of the texture.
     const withered = raised => g => {
       const skin = 0x1b1b21, rib = 0x2d2d36, cloth = 0x101015;
       g.fillStyle(skin);
@@ -40,13 +41,10 @@ class BootScene extends Phaser.Scene {
       g.fillRect(3, 54, 4, 2); g.fillRect(8, 54, 4, 2);         // feet
       if (raised) {
         g.fillRect(0, 0, 2, 11); g.fillRect(13, 0, 2, 11); g.fillRect(1, 10, 3, 2); g.fillRect(11, 10, 3, 2);
-      } else {
-        g.fillRect(1, 10, 2, 24); g.fillRect(12, 10, 2, 24); g.fillRect(0, 34, 3, 3); g.fillRect(11, 34, 3, 3);   // long dangling arms
       }
       g.fillStyle(rib);
       g.fillRect(4, 13, 7, 1); g.fillRect(4, 17, 7, 1); g.fillRect(4, 21, 7, 1); g.fillRect(6, 10, 1, 3);
       g.fillStyle(cloth); g.fillRect(3, 27, 9, 5);              // tattered rags
-      g.fillStyle(0xe9e6d2); g.fillRect(6, 4, 1, 1); g.fillRect(9, 4, 1, 1);   // pale eyes
       g.fillStyle(0x7a1c1c); g.fillRect(8, 14, 2, 2);           // the heart
     };
     tex('withered', 16, 56, withered(false));

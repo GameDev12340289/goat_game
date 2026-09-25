@@ -77,12 +77,14 @@ class MenuScene extends MenuBase {
     this.roomName = this.add.text(W / 2, 250 + 64 * this.items.length - 8, '', uiText(18, { color: '#9fb0d8' })).setOrigin(0.5);
 
     const on = (names, fn) => names.forEach(n => this.input.keyboard.on('keydown-' + n, fn));
-    on(['LEFT', 'A'], () => this.pickRoom(-1));
-    on(['RIGHT', 'D'], () => this.pickRoom(1));
-    on(['HOME'], () => this.pickRoom(-999));                 // HOME / END: first room / furthest room you have reached
-    on(['END'], () => this.pickRoom(999));
-    on(['Q'], () => this.pickRoom(-10));                     // 75 rooms: Q / E jump ten at a time
-    on(['E'], () => this.pickRoom(10));
+    // the room picker only listens while PLAY is the highlighted line (hovering it with the mouse highlights it)
+    const pick = d => () => { if (this.sel === 0) this.pickRoom(d); };
+    on(['LEFT', 'A'], pick(-1));
+    on(['RIGHT', 'D'], pick(1));
+    on(['HOME'], pick(-999));                                // HOME / END: first / last room in the list
+    on(['END'], pick(999));
+    on(['Q'], pick(-10));                                    // Q / E jump ten at a time
+    on(['E'], pick(10));
     // clicking the < or > in the PLAY line changes the room (anywhere else on the line starts the game)
     const play = this.labels[0];
     play.off('pointerdown');
@@ -101,9 +103,9 @@ class MenuScene extends MenuBase {
       uiText(15, { color: '#9fb0d8' })).setOrigin(0.5);
   }
 
-  // only three possible choices: the first room, room 75 and room 76 (the Merchant) - the last two once you have reached them
+  // rooms 1-65 are always pickable; room 75 and room 76 (the Merchant) join the list once you have reached them
   choices() {
-    const c = [0];
+    const c = Array.from({ length: 65 }, (_, i) => i);
     if (Save.data.unlocked >= 74) c.push(74);
     if (Save.data.unlocked >= 75) c.push(75);
     return c;
@@ -114,7 +116,7 @@ class MenuScene extends MenuBase {
     let i = Math.max(0, c.indexOf(this.room));
     if (d === -999) i = 0;
     else if (d === 999) i = c.length - 1;
-    else if (d !== 0) i = (i + Math.sign(d) + c.length) % c.length;
+    else if (d !== 0) i = ((i + d) % c.length + c.length) % c.length;
     this.room = c[i];
     this.roomName.setText(LEVELS[this.room].name);
     this.refresh();

@@ -1,4 +1,4 @@
-﻿// The Withered: a tall, charcoal-skinned figure that chases the player from the left and summons floor-to-ceiling spikes
+﻿// The Withered: a tall, eyeless, charcoal-skinned figure with 22 long arms dragging behind it, that chases the player from the left and summons floor-to-ceiling spikes
 // out of the floor, just like the popping spikes of room 5 (a jittering peek as a warning, then the pillar shoots up).
 // Room config (levels.js -> boss, with withered: true): { speed px/s, startX, firstDelay, spikeEvery, warn, desperateAfter }
 // desperateAfter (final room only): after that many seconds it stops and calls a wall of tall spikes across the whole floor.
@@ -14,6 +14,12 @@ class Withered {
     this.attacks = []; this.wall = []; this.reflects = []; this.queue = []; this.queueT = 0;
     this.noDeflect = false;                        // the desperate spikes can't be shrugged off with the Mountain shield
     this.dead = false;
+
+    // 22 long arms (11 a side) rooted down its torso, each trailing a different distance behind it
+    this.arms = Array.from({ length: 22 }, (_, i) => ({
+      px: i % 2 ? 4 : 11, py: 11 + Math.floor(i / 2) * 1.5,      // where on the 16x56 sprite the arm grows from
+      trail: 26 + i * 5, sag: 3 + (i % 5) * 2, phase: i * 1.3,
+    }));
 
     this.sprite = scene.add.image(0, 0, 'withered').setOrigin(0.5, 1).setScale(Withered.SCALE).setDepth(9);
     this.gfx = scene.add.graphics().setDepth(8);
@@ -240,6 +246,38 @@ class Withered {
     }
     if (this.state === 'pierced' || this.dead) {                    // the heart, glowing where the spike went through
       g.fillStyle(0xff6a5a, this.dead ? 0.0 : 0.9); g.fillCircle(this.x, CFG.H - 80, 4);
+    }
+    this.drawArms(g);
+    g.setAlpha(this.dead ? this.sprite.alpha : 1);
+  }
+
+  // where the floor is under x (a pit has none: the hand just hangs into it)
+  floorAt(x) {
+    if (x < 0) return this.groundY;
+    const s = this.surfaceAt(Math.floor(x / CFG.TILE), this.groundY - 12);
+    return s === null ? CFG.H + 6 : s;
+  }
+
+  // the 22 long arms hang from the torso, bend at the floor and drag their hands along the ground behind the Withered
+  drawArms(g) {
+    const busy = this.state === 'chase' && this.stunT <= 0;            // they writhe while it walks and go slack when it stops
+    const wob = busy ? 1 : 0.15, T = this.t;
+    const bx = this.sprite.x, by = this.sprite.y, S = Withered.SCALE;
+    for (const a of this.arms) {
+      const rx = bx + (a.px - 8) * S, ry = by - (56 - a.py) * S;
+      const hx = rx - a.trail + Math.sin(T * 6 + a.phase) * 5 * wob;
+      const hy = this.floorAt(hx) - 1 - Math.max(0, Math.sin(T * 6 + a.phase * 1.7)) * 3 * wob;
+      const cx = rx - a.sag, cy = hy;                                  // control point: straight down from the shoulder, then along the floor
+      g.lineStyle(2, 0x23232c, 1); g.beginPath(); g.moveTo(rx, ry);
+      for (let k = 1; k <= 12; k++) {
+        const u = k / 12, v = 1 - u;
+        g.lineTo(v * v * rx + 2 * u * v * cx + u * u * hx, v * v * ry + 2 * u * v * cy + u * u * hy);
+      }
+      g.strokePath();
+      g.fillStyle(0x1b1b21); g.fillRect(Math.round(hx) - 2, Math.round(hy) - 1, 3, 3);                       // palm
+      g.lineStyle(1, 0x1b1b21, 1); g.beginPath();
+      for (const f of [-1.5, 0, 1.5]) { g.moveTo(hx - 1, hy); g.lineTo(hx - 6, hy + f); }                      // long fingers, clawing the floor
+      g.strokePath();
     }
   }
 }
