@@ -231,6 +231,7 @@ class Withered {
     this.scene.tweens.add({ targets: this.sprite, alpha: 0, duration: 900 });
     this.reflects.forEach(r => this.scene.tweens.add({ targets: r.sprite, alpha: 0, duration: 700 }));
     this.scene.dropBones(this.x, CFG.H - 60);
+    this.scene.spawnJeff(Math.min(this.x + 100, CFG.W - 30), { stall: false });   // Jeff shows up now that the Withered is buried
   }
 
   // the shield bounced an attack back: stunned, and every summoned pillar is snuffed out

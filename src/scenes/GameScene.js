@@ -127,7 +127,7 @@ class GameScene extends Phaser.Scene {
       this.boss = room.boss.withered ? new Withered(this, room.boss, groundY) : new Boss(this, room.boss, groundY);
       if (room.finale) this.addLeapPad(room.finale.leapX, groundY);
     }
-    this.leaped = false;
+    this.leaped = false; this.leapJeffSpawned = false;   // Jeff shows up once you land the mega-leap out of a boss chase
     if (room.merchant) this.spawnJeff(100);                                  // the Merchant's room: Jeff and his stall
 
     this.player.spawn(spawn.x, spawn.y);
@@ -460,6 +460,11 @@ class GameScene extends Phaser.Scene {
       this.cameras.main.shake(250, 0.008);
       this.burst(p.centerX, p.y + CFG.PH, 0xffd23f, 14, 90);
     }
+    // Jeff shows up once the mega-leap lands safely - he's proud of you for outrunning that goat
+    if (fin && this.leaped && !this.leapJeffSpawned && p.state === 'normal') {
+      this.leapJeffSpawned = true;
+      this.spawnJeff(Math.min(p.x + 60, CFG.W - 30));
+    }
     // boss attacks (body, shockwave, summoned spikes) are exceptions to Tough Hide: always instant death
     // (a raised shield reflects the attack instead and stuns the boss)
     if (this.boss && this.boss.update(dt, p) && this.rampageT <= 0 && this.gambleBoostT <= 0 && this.graceT <= 0) {
@@ -634,13 +639,15 @@ class GameScene extends Phaser.Scene {
   }
 
   // Jeff the merchant takes goat horns (and Withered bones for the VIP tier). He runs the stall in the Merchant's room (V talks to him).
-  spawnJeff(x, auto = false) {
+  // stall: false for his surprise mid-run cameos - he hasn't had time to set up shop, he's just there
+  spawnJeff(x, { auto = false, stall = true } = {}) {
     const ground = this.groundY;
-    this.drawStall(x, ground);
-    const sprite = this.add.image(x, ground - 3, 'jeff').setOrigin(0.5, 1).setDepth(9);
+    if (stall) this.drawStall(x, ground);
+    const y = stall ? ground - 3 : ground;
+    const sprite = this.add.image(x, y, 'jeff').setOrigin(0.5, 1).setDepth(9);
     this.roomObjs.push(sprite);
-    this.tweens.add({ targets: sprite, y: ground - 5, yoyo: true, repeat: -1, duration: 700, ease: 'Sine.inOut' });   // he floats
-    this.burst(x, ground - 10, 0x7dffb2, 14, 70);
+    this.tweens.add({ targets: sprite, y: y - 2, yoyo: true, repeat: -1, duration: 700, ease: 'Sine.inOut' });   // he floats
+    this.burst(x, y - 7, 0x7dffb2, 14, 70);
     this.jeff = { x, sprite, near: false };
     if (auto) this.time.delayedCall(1400, () => { if (this.jeff && !this.transitioning) this.openJeff(); });
     this.time.delayedCall(CFG.JEFF_DESPAWN, () => { if (this.jeff && !this.scene.isPaused()) this.jeffLeaves(); });   // he doesn't wait around forever
