@@ -18,18 +18,19 @@ function drawMenuBackdrop(scene) {
   scene.add.image(gx, gy - 11 * 8 - 8, 'hair').setOrigin(0.5, 0).setScale(8).setTint(0xe8443c);
 }
 
-function hornCounter(scene) {
+// the goat shop is paid in coins, so the big counter shows coins
+function coinCounter(scene) {
   const Z = CFG.ZOOM, W = CFG.W * Z;
-  const icon = scene.add.image(W - 24, 26, 'horn').setOrigin(1, 0.5).setScale(4);
-  return scene.add.text(W - 24 - 40, 26, String(Save.data.horns), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
+  const icon = scene.add.image(W - 24, 26, 'coin').setOrigin(1, 0.5).setScale(4);
+  return scene.add.text(W - 24 - 40, 26, String(Save.data.coins), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
 }
 
-// coins and Withered bones are saved between runs just like horns, so they get a counter under the horn count
+// goat horns and Withered bones are still saved between runs, so they get a counter under the coin count
 function stashCounter(scene) {
   const Z = CFG.ZOOM, W = CFG.W * Z;
   return scene.add.text(W - 24, 52, '', uiText(16, { color: '#e9e6d2', align: 'right' })).setOrigin(1, 0);
 }
-const stashText = () => `coins ${Save.data.coins}\nWithered bones ${Save.data.witheredBones}`;
+const stashText = () => `goat horns ${Save.data.horns}\nWithered bones ${Save.data.witheredBones}`;
 
 // Simple vertical menu: subclasses fill this.items with { text: () => string, run: () => void }
 class MenuBase extends Phaser.Scene {
@@ -99,7 +100,7 @@ class MenuScene extends MenuBase {
     this.pickRoom(0);
 
     this.add.text(W / 2, H - 22,
-      'move: arrows / WASD    jump: C    dash: Right Shift    grab: W    retry: R    pause: ESC    rampage: Q    shield: F',
+      'move: arrows / WASD    jump: C    dash: Right Shift    grab: W    retry: R    pause: ESC    rampage: Q    shield: F    gamble: G',
       uiText(15, { color: '#9fb0d8' })).setOrigin(0.5);
   }
 
@@ -130,7 +131,7 @@ class ShopScene extends MenuBase {
     const Z = CFG.ZOOM, W = CFG.W * Z, H = CFG.H * Z;
     drawMenuBackdrop(this);
     this.add.text(W / 2, 70, 'GOAT SHOP', uiText(64, { color: '#ffd23f' })).setOrigin(0.5);
-    this.horns = hornCounter(this);
+    this.coins = coinCounter(this);
     this.stash = stashCounter(this).setText(stashText());
     this.msg = this.add.text(W / 2, H - 50, '', uiText(20, { color: '#ffd23f' })).setOrigin(0.5);
     this.desc = this.add.text(W / 2, H - 125, '', uiText(18, { color: '#ffffff', align: 'center', wordWrap: { width: 760 } })).setOrigin(0.5);
@@ -146,7 +147,7 @@ class ShopScene extends MenuBase {
     ['ESC', 'BACKSPACE'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.scene.start('Menu')));
   }
 
-  price(u) { return u.bones ? `${u.cost}h ${u.bones}b ${u.coins}c` : `${u.cost} horns`; }
+  price(u) { return `${u.cost} coins`; }
 
   // why an upgrade can't be bought yet ('' if it can)
   lock(u) {
@@ -163,7 +164,7 @@ class ShopScene extends MenuBase {
     };
     this.msg.setText(msgs[r])
       .setColor(r === 'ok' ? '#7dffb2' : '#ff7070');
-    this.horns.setText(String(Save.data.horns));
+    this.coins.setText(String(Save.data.coins));
     this.stash.setText(stashText());
     this.refresh();
   }
@@ -177,7 +178,11 @@ class ShopScene extends MenuBase {
 
 
 
-// Jeff the merchant (room 76): sells armour and items for coins only. Runs on top of the paused Game scene.
+// Jeff the merchant (room 76): sells armour and items for goat horns only. His VIP tier also wants big piles of
+// Withered bones on top - the good stuff isn't cheap. Runs on top of the paused Game scene.
+const JEFF_TABS = ['armour', 'item', 'vip'];
+const JEFF_TAB_LABELS = { armour: '<  ARMOUR  >', item: '<  ITEMS  >', vip: '<  VIP ITEMS  >' };
+
 class JeffScene extends MenuBase {
   constructor() { super('Jeff'); }
 
@@ -186,9 +191,9 @@ class JeffScene extends MenuBase {
     this.add.rectangle(W / 2, H / 2, W, H, 0x05060d, 0.86);
     this.add.image(90, 230, 'jeff').setOrigin(0.5, 1).setScale(8);
     this.add.text(W / 2 + 40, 56, "JEFF'S WARES", uiText(56, { color: '#7dffb2' })).setOrigin(0.5);
-    this.add.text(W / 2 + 40, 100, 'coins only, friend. no horns. never horns.', uiText(18, { color: '#9fb0d8' })).setOrigin(0.5);
-    this.add.image(W - 24, 26, 'coin').setOrigin(1, 0.5).setScale(4);
-    this.coins = this.add.text(W - 24 - 40, 26, String(Save.data.coins), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
+    this.add.text(W / 2 + 40, 100, 'horns buy the wares. bones buy the good stuff.', uiText(18, { color: '#9fb0d8' })).setOrigin(0.5);
+    this.add.image(W - 24, 26, 'horn').setOrigin(1, 0.5).setScale(4);
+    this.horns = this.add.text(W - 24 - 40, 26, String(Save.data.horns), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
     this.stash = this.add.text(W - 24, 52, this.stashText(), uiText(16, { color: '#e9e6d2', align: 'right' })).setOrigin(1, 0);
     this.tabText = this.add.text(W / 2 + 40, 146, '', uiText(22, { color: '#ffd23f' })).setOrigin(0.5);
     this.msg = this.add.text(W / 2, H - 30, '', uiText(18, { color: '#ffd23f' })).setOrigin(0.5);
@@ -197,11 +202,12 @@ class JeffScene extends MenuBase {
     this.tab = 'armour';
     this.items = this.tabItems();
     this.setupMenu(196, 42, 24);
-    ['LEFT', 'RIGHT', 'A', 'D'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.switchTab()));
+    ['LEFT', 'A'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.switchTab(-1)));
+    ['RIGHT', 'D'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.switchTab(1)));
     ['ESC', 'BACKSPACE', 'V'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.close()));
   }
 
-  price(u) { return u.bones ? `${u.cost}c ${u.bones}b ${u.horns}h` : `${u.cost} coins`; }
+  price(u) { return u.bones ? `${u.cost}h ${u.bones}b` : `${u.cost} horns`; }
 
   // the wares on the current tab, plus LEAVE
   tabItems() {
@@ -214,8 +220,8 @@ class JeffScene extends MenuBase {
     return list;
   }
 
-  switchTab() {
-    this.tab = this.tab === 'armour' ? 'item' : 'armour';
+  switchTab(d = 1) {
+    this.tab = JEFF_TABS[(JEFF_TABS.indexOf(this.tab) + d + JEFF_TABS.length) % JEFF_TABS.length];
     this.items = this.tabItems();
     this.sel = 0;
     this.refresh();
@@ -228,19 +234,19 @@ class JeffScene extends MenuBase {
   }
 
   buy(u) {
-    const r = Save.buyWithCoins(u);
+    const r = Save.buyWithHorns(u);
     const say = {
       ok: `Pleasure doing business! (${u.name})`, owned: 'You already have that.',
       poor: `Still need ${Save.missingJeff(u).join(', ')}. Come back with more.`,
       needTrial: 'Odin wants proof first: reach room 10 in 1:30 with no deaths.',
     };
     this.msg.setText(say[r]).setColor(r === 'ok' ? '#7dffb2' : '#ff7070');
-    this.coins.setText(String(Save.data.coins));
+    this.horns.setText(String(Save.data.horns));
     this.stash.setText(this.stashText());
     this.refresh();
   }
 
-  stashText() { return `Withered bones ${Save.data.witheredBones}\ngoat horns ${Save.data.horns}`; }
+  stashText() { return `Withered bones ${Save.data.witheredBones}`; }
 
   refresh() {
     if (!this.labels) return;
@@ -251,7 +257,7 @@ class JeffScene extends MenuBase {
       t.setText((i === this.sel ? '> ' : '  ') + it.text() + (i === this.sel ? ' <' : '  '));
       t.setColor(i === this.sel ? '#ffd23f' : '#ffffff');
     });
-    if (this.tabText) this.tabText.setText(this.tab === 'armour' ? '<  ARMOUR  >   (items: left / right)' : '<  ITEMS  >   (armour: left / right)');
+    if (this.tabText) this.tabText.setText(`${JEFF_TAB_LABELS[this.tab]}   (left / right to switch)`);
     const it = this.items[this.sel];
     if (this.desc) this.desc.setText(it && it.up ? it.up.desc : '');
   }

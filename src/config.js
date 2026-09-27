@@ -49,6 +49,9 @@ CFG.BONES_MIN = 1; CFG.BONES_MAX = 5;   // Withered bones dropped per kill
 CFG.ODIN_HITS = 5; CFG.ODIN_BOSS_HITS = 3; CFG.ODIN_DROPS = 5; CFG.ODIN_TRIAL_ROOM = 10; CFG.ODIN_TRIAL_TIME = 90;
 CFG.HURT_INVULN = 1.5; // seconds of invulnerability after Tough Hide absorbs a hit
 CFG.JEFF_DESPAWN = 120000; // Jeff packs up and vanishes if you dawdle this long (ms)
+// Gambler's Coin (Jeff, VIP): press G to flip it. 70% GAMBLE_BOOST_TIME of speed + invincibility, 10% frozen solid for
+// GAMBLE_FREEZE_TIME and every extra life is negated for the rest of the room, 20% nothing happens. GAMBLE_COOLDOWN between flips.
+CFG.GAMBLE_COOLDOWN = 20; CFG.GAMBLE_BOOST_TIME = 5; CFG.GAMBLE_FREEZE_TIME = 22; CFG.GAMBLE_SPEED = 1.4;
 
 // shop items; effects are applied in GameScene.applyUpgrades()
 const UPGRADES = [
@@ -63,23 +66,34 @@ const UPGRADES = [
     desc: 'Press Q or E for 5 seconds of invincibility to everything (even the boss), +50% speed and huge horns. Then 2 seconds at half speed. 120 second cooldown.' },
 ];
 
-// Jeff the merchant (room 76) sells these armour pieces and items for COINS only - never horns.
-// Coins are picked up in the rooms and are kept between runs (Save.data.coins).
+// goat shop prices are paid in coins (no horns) and are 25% cheaper than the original list above (rounded down)
+UPGRADES.forEach(u => { u.cost = Math.floor(u.cost * 0.75); });
+
+// Jeff the merchant (room 76) sells armour and items for goat horns only - never coins. The VIP tier is the good stuff:
+// it also demands big piles of Withered bones on top of its horns price. See Save.buyWithHorns / GameScene.applyUpgrades.
 const JEFF_ITEMS = [
-  // armour
-  { kind: 'armour', id: 'frostCloak', name: 'Frost Cloak', cost: 50, desc: 'Powder snow takes twice as long to freeze you.' },
-  { kind: 'armour', id: 'hornedHelm', name: 'Horned Helm', cost: 70, desc: 'After a hit is absorbed you stay protected twice as long (3 seconds).' },
-  { kind: 'armour', id: 'spareHide', name: 'Spare Hide', cost: 80, desc: '+1 hit point. Hazards only - boss attacks still one-shot you.' },
-  { kind: 'armour', id: 'frostplate', name: 'Frostplate', cost: 100, desc: 'You thaw out twice as fast after leaving powder snow.' },
-  { kind: 'armour', id: 'ironPlate', name: 'Iron Plate', cost: 150, desc: '+1 hit point on top of everything else. Hazards only.' },
-  // items
-  { kind: 'item', id: 'sureFooting', name: 'Sure Footing', cost: 30, desc: '+50% climbing stamina.' },
-  { kind: 'item', id: 'gripChalk', name: 'Grip Chalk', cost: 45, desc: 'You slide down walls half as fast.' },
-  { kind: 'item', id: 'rampageTonic', name: 'Rampage Tonic', cost: 90, desc: 'Rampage of the Mountains recharges a third faster (80 seconds).' },
-  { kind: 'item', id: 'twinDash', name: 'Twin Dash', cost: 120, desc: 'Carry two dashes at once.' },
-  { kind: 'item', id: 'odin', name: "Odin's Blessing", cost: 500, bones: 275, horns: 125, trial: 'odin',
-    desc: 'Trial: reach room 10 in 1:30 with no deaths (start at room 1). Costs 500 coins, 275 Withered bones, 125 goat horns. ' +
+  // armour (goat horns)
+  { kind: 'armour', id: 'frostCloak', name: 'Frost Cloak', cost: 8, desc: 'Powder snow takes twice as long to freeze you.' },
+  { kind: 'armour', id: 'hornedHelm', name: 'Horned Helm', cost: 10, desc: 'After a hit is absorbed you stay protected twice as long (3 seconds).' },
+  { kind: 'armour', id: 'spareHide', name: 'Spare Hide', cost: 12, desc: '+1 hit point. Hazards only - boss attacks still one-shot you.' },
+  { kind: 'armour', id: 'frostplate', name: 'Frostplate', cost: 14, desc: 'You thaw out twice as fast after leaving powder snow.' },
+  { kind: 'armour', id: 'ironPlate', name: 'Iron Plate', cost: 20, desc: '+1 hit point on top of everything else. Hazards only.' },
+  // items (goat horns)
+  { kind: 'item', id: 'sureFooting', name: 'Sure Footing', cost: 5, desc: '+50% climbing stamina.' },
+  { kind: 'item', id: 'gripChalk', name: 'Grip Chalk', cost: 7, desc: 'You slide down walls half as fast.' },
+  { kind: 'item', id: 'rampageTonic', name: 'Rampage Tonic', cost: 12, desc: 'Rampage of the Mountains recharges a third faster (80 seconds).' },
+  { kind: 'item', id: 'twinDash', name: 'Twin Dash', cost: 16, desc: 'Carry two dashes at once.' },
+  // VIP items: Jeff's best gear, kept under the counter. Horns alone won't do - he wants a serious pile of Withered bones too.
+  { kind: 'vip', id: 'odin', name: "Odin's Blessing", cost: 125, bones: 275, trial: 'odin',
+    desc: 'Trial: reach room 10 in 1:30 with no deaths (start at room 1). Costs 125 goat horns, 275 Withered bones. ' +
           'Immune to powder snow. 5 hits to die, 3 against boss attacks. All drops x5.' },
+  { kind: 'vip', id: 'boneWard', name: 'Bone Ward', cost: 30, bones: 320,
+    desc: '+1 hit point on top of everything else (stacks with Iron Plate). Hazards only - the toughest hide bones can buy.' },
+  { kind: 'vip', id: 'elderRampage', name: "Elder's Rampage", cost: 45, bones: 480,
+    desc: "Requires Rampage of the Mountains to do anything. Doubles its duration (10 seconds) and halves its cooldown on top of Rampage Tonic." },
+  { kind: 'vip', id: 'gamblersCoin', name: "Gambler's Coin", cost: 55, bones: 550,
+    desc: 'Press G to flip it (20 second cooldown). 70% chance: speed boost and invincibility for 5 seconds. ' +
+          '10% chance: frozen solid for 22 seconds, and every extra life is negated for the rest of the room. 20% chance: nothing happens.' },
 ];
 
 // shared text style for the full-resolution menu scenes

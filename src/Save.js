@@ -31,42 +31,34 @@ const Save = {
     if (upgrade.requires && !this.has(upgrade.requires)) return 'needHide';
     if (upgrade.trial && !this.data.chaseTrialDone) return 'needTrial';
     if (this.missing(upgrade).length) return 'poor';
-    this.data.horns -= upgrade.cost;
-    this.data.witheredBones -= upgrade.bones || 0;
-    this.data.coins -= upgrade.coins || 0;
+    this.data.coins -= upgrade.cost;
     this.data.upgrades[upgrade.id] = true;
     this.save();
     return 'ok';
   },
 
-  // what you're still short of for a goat-shop upgrade (horns, plus Withered bones / coins for the big ones)
+  // what you're still short of for a goat-shop upgrade (goat shop items are paid in coins only)
   missing(u) {
-    const out = [];
-    if (this.data.horns < u.cost) out.push(`${u.cost - this.data.horns} horns`);
-    if (this.data.witheredBones < (u.bones || 0)) out.push(`${u.bones - this.data.witheredBones} Withered bones`);
-    if (this.data.coins < (u.coins || 0)) out.push(`${u.coins - this.data.coins} coins`);
-    return out;
+    return this.data.coins < u.cost ? [`${u.cost - this.data.coins} coins`] : [];
   },
 
   addCoins(n) { this.data.coins += n; this.save(); },
 
-  // Jeff's wares are paid in coins (Odin's Blessing also wants Withered bones and goat horns) and Odin's needs its trial passed first.
+  // Jeff's wares are paid in goat horns (VIP items also want a big pile of Withered bones) and Odin's needs its trial passed first.
   // returns 'ok' | 'owned' | 'needTrial' | 'poor'
   missingJeff(item) {
     const out = [];
-    if (this.data.coins < item.cost) out.push(`${item.cost - this.data.coins} coins`);
+    if (this.data.horns < (item.cost || 0)) out.push(`${item.cost - this.data.horns} horns`);
     if (this.data.witheredBones < (item.bones || 0)) out.push(`${item.bones - this.data.witheredBones} Withered bones`);
-    if (this.data.horns < (item.horns || 0)) out.push(`${item.horns - this.data.horns} horns`);
     return out;
   },
 
-  buyWithCoins(item) {
+  buyWithHorns(item) {
     if (this.has(item.id)) return 'owned';
     if (item.trial === 'odin' && !this.data.odinTrialDone) return 'needTrial';
     if (this.missingJeff(item).length) return 'poor';
-    this.data.coins -= item.cost;
+    this.data.horns -= item.cost || 0;
     this.data.witheredBones -= item.bones || 0;
-    this.data.horns -= item.horns || 0;
     this.data.upgrades[item.id] = true;
     this.save();
     return 'ok';

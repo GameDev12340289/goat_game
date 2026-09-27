@@ -677,7 +677,8 @@ LEVELS.push(
   WITHERED(74, 'The Withered: Last Breath', { speed: 46, startX: -46, firstDelay: 2, spikeEvery: 2.8 },
     RUN([['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['big', 8], ['f', 2], ['hur', 2]])),
   // the last room: flat floor, and the exit is sealed. After a few seconds the Withered stops and calls tall spikes across
-  // the whole floor. Only a Tough Hide survives: the spikes are reflected, pierce its heart, and it drops the Withered bones.
+  // the whole floor. Only a Tough Hide survives: the spikes are reflected into the ceiling, bringing it down in debris
+  // that buries the Withered, and it drops its bones.
   WITHERED(75, 'The Withered: Desperate Measures',
     { speed: 38, startX: -50, firstDelay: 2, spikeEvery: 3, desperateAfter: 4.5 },
     RUN([['f', 34]], g => { g.put(17, 26, 'S'); })),

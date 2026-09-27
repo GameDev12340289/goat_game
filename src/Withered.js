@@ -2,7 +2,8 @@
 // out of the floor, just like the popping spikes of room 5 (a jittering peek as a warning, then the pillar shoots up).
 // Room config (levels.js -> boss, with withered: true): { speed px/s, startX, firstDelay, spikeEvery, warn, desperateAfter }
 // desperateAfter (final room only): after that many seconds it stops and calls a wall of tall spikes across the whole floor.
-// Nothing but a Tough Hide survives it: with one the spikes are reflected, pierce the Withered's heart and it drops its bones.
+// Nothing but a Tough Hide survives it: with one the spikes are reflected straight up into the ceiling, bringing it down
+// in a fall of debris that buries the Withered, and it drops its bones.
 class Withered {
   constructor(scene, cfg, groundY) {
     this.scene = scene;
@@ -23,9 +24,9 @@ class Withered {
 
     this.sprite = scene.add.image(0, 0, 'withered').setOrigin(0.5, 1).setScale(Withered.SCALE).setDepth(9);
     this.gfx = scene.add.graphics().setDepth(8);
-    this.lanceG = scene.add.graphics().setDepth(10);       // in front of the body, so the spike is seen going through the chest
-    this.lance = null;
-    scene.roomObjs.push(this.sprite, this.gfx, this.lanceG);
+    this.debrisG = scene.add.graphics().setDepth(10);      // in front of the body, so the rubble is seen piling on top of it
+    this.debris = null;
+    scene.roomObjs.push(this.sprite, this.gfx, this.debrisG);
   }
 
   // returns true if the player was hit
@@ -56,10 +57,10 @@ class Withered {
     const bob = this.state === 'chase' && !stunned ? Math.abs(Math.sin(this.t * 7)) * 2 : 0;
     this.sprite.setPosition(Math.round(this.x), CFG.H + 2 - Math.round(bob));
     this.draw();
-    this.drawLance();
+    this.drawDebris();
 
     // ---- collisions ----
-    if (this.dead || this.state === 'pierced') return false;
+    if (this.dead || this.state === 'collapse') return false;
     const hit = (x, y, w, h) => p.x < x + w && p.x + CFG.PW > x && p.y < y + h && p.y + CFG.PH > y;
     if (hit(this.x - Withered.HALF_W, CFG.H - Withered.HEIGHT, Withered.HALF_W * 2, Withered.HEIGHT)) return true;
     for (const a of this.attacks) {
@@ -89,15 +90,23 @@ class Withered {
       if (this.stateT <= 0) this.startDesperate();          // survived (e.g. Rampage): it just tries again
     } else if (this.state === 'reflect') {
       this.queueT -= dt;
-      while (this.queue.length && this.queueT <= 0) { this.reflects.push({ sprite: this.makePillar(this.queue.shift(), 0x9fe8ff), born: this.t, t: 0 }); this.queueT += 0.03; }
-      if (this.lance && !this.lance.done) {                 // the reflected spike flies at the heart and goes clean through
-        this.lance.tip -= Withered.LANCE_SPEED * dt;
-        if (this.lance.tip <= this.x - 14) { this.lance.tip = this.x - 14; this.lance.done = true; }
+      while (this.queue.length && this.queueT <= 0) { this.reflects.push({ sprite: this.makePillar(this.queue.shift(), 0x9fe8ff), born: this.t, t: 0, cracked: false }); this.queueT += 0.03; }
+      for (const r of this.reflects) {                     // each spike cracks the ceiling the moment it reaches it
+        if (!r.cracked && r.t > 0.12) { r.cracked = true; this.scene.burst(r.sprite.x + CFG.TILE / 2, 4, 0xcfe4ff, 8, 90); }
       }
-      if (!this.queue.length && this.reflects.every(r => r.t > 0.15) && this.lance && this.lance.done) this.startPierce();
-    } else if (this.state === 'pierced') {
+      if (!this.queue.length && this.reflects.every(r => r.cracked)) this.startCollapse();
+    } else if (this.state === 'collapse') {
       this.stateT -= dt;
-      if (Math.floor(this.stateT * 12) % 2) this.sprite.setTint(0xff6a5a); else this.sprite.clearTint();
+      for (const d of this.debris) {
+        if (d.landed) continue;
+        d.vy += Withered.DEBRIS_GRAVITY * dt;
+        d.y += d.vy * dt;
+        if (d.y >= d.targetY) {
+          d.y = d.targetY; d.landed = true;
+          this.scene.burst(d.x, d.y, 0x8a8a94, 5, 70);
+          cam.shake(80, 0.006);
+        }
+      }
       if (this.stateT <= 0) this.die();
     }
   }
@@ -187,17 +196,34 @@ class Withered {
     this.queue = [];
     for (let c = pcol - 2; c >= wcol - 1; c--) this.queue.push(c);
     this.queueT = 0;
-    this.lance = { tip: p.centerX - 4, done: false };
-    this.scene.game.events.emit('toast', 'Your hide reflects the spikes!');
+    this.scene.game.events.emit('toast', 'Your hide reflects the spikes into the ceiling!');
     this.scene.cameras.main.shake(300, 0.01);
     this.scene.burst(p.centerX, p.centerY, 0x9fe8ff, 18, 120);
   }
 
-  startPierce() {
-    this.state = 'pierced'; this.stateT = 1.6;
-    this.scene.cameras.main.shake(500, 0.016);
-    this.scene.game.events.emit('title', 'The Withered is pierced through the heart!');
-    this.scene.burst(this.x, CFG.H - 80, 0xff5a3c, 26, 140);
+  // the cracked ceiling gives way: rubble rains down over the Withered and piles into a mound taller than it is, burying it completely
+  startCollapse() {
+    this.state = 'collapse'; this.stateT = Withered.COLLAPSE_TIME;
+    this.scene.cameras.main.shake(500, 0.014);
+    this.scene.game.events.emit('title', 'The ceiling comes down on the Withered!');
+    this.scene.burst(this.x, 6, 0xcfd6e0, 16, 130);
+    const colors = [0x3a3a44, 0x45454f, 0x2e2e36, 0x50505c];
+    const rowH = 7, rows = Math.ceil((Withered.HEIGHT + 18) / rowH);   // tapers to a peak well above its head
+    const baseHalf = Withered.HALF_W + 14, topHalf = 3, step = 7;
+    this.debris = [];
+    for (let row = 0; row < rows; row++) {
+      const half = Phaser.Math.Linear(baseHalf, topHalf, row / (rows - 1));
+      for (let ox = -half; ox <= half; ox += step) {
+        const w = 6 + Math.floor(Math.random() * 4), h = 6 + Math.floor(Math.random() * 4);
+        this.debris.push({
+          x: this.x + ox + (Math.random() * 2 - 1) * 2,
+          y: -4 - Math.random() * 60, vy: 20 + Math.random() * 30,
+          w, h, color: colors[Math.floor(Math.random() * colors.length)],
+          targetY: this.groundY - row * rowH - Math.random() * 3,
+          landed: false,
+        });
+      }
+    }
   }
 
   die() {
@@ -218,16 +244,15 @@ class Withered {
     this.scene.game.events.emit('title', 'The Withered recoils!');
   }
 
-  // the big reflected spike: a shaft and an arrowhead at heart height, its tip ends up out of the Withered's back
-  drawLance() {
-    const g = this.lanceG;
+  // the rubble pile: drawn on top of the body so it visibly buries the Withered as chunks land; stays put once it's dead
+  drawDebris() {
+    const g = this.debrisG;
     g.clear();
-    if (!this.lance) return;
-    const a = this.dead ? this.sprite.alpha : 1, y = Withered.HEART_Y, t = this.lance.tip, len = 70;
-    g.fillStyle(0x7fd0ff, 0.45 * a); g.fillRect(t + 8, y - 3, len, 7);                    // glow
-    g.fillStyle(0xd8f8ff, a); g.fillRect(t + 10, y - 1, len, 3);                          // shaft
-    g.fillTriangle(t, y, t + 12, y - 5, t + 12, y + 5);                                   // head
-    if (this.state === 'pierced' || this.dead) { g.fillStyle(0xff5a3c, a); g.fillRect(this.x - 2, y - 2, 4, 5); }   // blood on the shaft
+    if (!this.debris) return;
+    for (const d of this.debris) {
+      g.fillStyle(d.color, 1);
+      g.fillRect(Math.round(d.x - d.w / 2), Math.round(d.y - d.h), d.w, d.h);
+    }
   }
 
   draw() {
@@ -244,9 +269,6 @@ class Withered {
       g.fillStyle(0xff2020, on ? 0.3 : 0.12); g.fillRect(x, 0, CFG.W - x, this.groundY);
       g.fillStyle(0xff4040, on ? 1 : 0.5); g.fillRect(x, this.groundY - 2, CFG.W - x, 2);
     }
-    if (this.state === 'pierced' || this.dead) {                    // the heart, glowing where the spike went through
-      g.fillStyle(0xff6a5a, this.dead ? 0.0 : 0.9); g.fillCircle(this.x, CFG.H - 80, 4);
-    }
     this.drawArms(g);
     g.setAlpha(this.dead ? this.sprite.alpha : 1);
   }
@@ -258,16 +280,29 @@ class Withered {
     return s === null ? CFG.H + 6 : s;
   }
 
-  // the 22 long arms hang from the torso, bend at the floor and drag their hands along the ground behind the Withered
+  // the 22 long arms hang from the torso and drag their hands along the ground while it chases - but from the desperate
+  // move onward (raised torso texture, reflect, buried under the collapse) they all throw up straight and shake, wobbling.
   drawArms(g) {
+    const raised = this.state !== 'chase';
     const busy = this.state === 'chase' && this.stunT <= 0;            // they writhe while it walks and go slack when it stops
     const wob = busy ? 1 : 0.15, T = this.t;
     const bx = this.sprite.x, by = this.sprite.y, S = Withered.SCALE;
     for (const a of this.arms) {
       const rx = bx + (a.px - 8) * S, ry = by - (56 - a.py) * S;
-      const hx = rx - a.trail + Math.sin(T * 6 + a.phase) * 5 * wob;
-      const hy = this.floorAt(hx) - 1 - Math.max(0, Math.sin(T * 6 + a.phase * 1.7)) * 3 * wob;
-      const cx = rx - a.sag, cy = hy;                                  // control point: straight down from the shoulder, then along the floor
+      let hx, hy, cx, cy;
+      if (raised) {
+        const side = a.px < 8 ? -1 : 1;
+        const spread = side * (3 + (a.trail % 24) * 0.4);              // fan the 22 raised arms so they don't overlap
+        const reach = 46 + (a.trail % 30);                             // uneven reach: a jagged row of grasping hands
+        const shake = Math.sin(T * 11 + a.phase) * 3;                  // fast, nervous wobble
+        hx = rx + spread + shake;
+        hy = ry - reach + Math.sin(T * 6.5 + a.phase * 1.6) * 2;
+        cx = rx + spread * 0.6 + shake * 0.5; cy = ry - reach * 0.55;
+      } else {
+        hx = rx - a.trail + Math.sin(T * 6 + a.phase) * 5 * wob;
+        hy = this.floorAt(hx) - 1 - Math.max(0, Math.sin(T * 6 + a.phase * 1.7)) * 3 * wob;
+        cx = rx - a.sag; cy = hy;                                      // control point: straight down from the shoulder, then along the floor
+      }
       g.lineStyle(2, 0x23232c, 1); g.beginPath(); g.moveTo(rx, ry);
       for (let k = 1; k <= 12; k++) {
         const u = k / 12, v = 1 - u;
@@ -276,7 +311,8 @@ class Withered {
       g.strokePath();
       g.fillStyle(0x1b1b21); g.fillRect(Math.round(hx) - 2, Math.round(hy) - 1, 3, 3);                       // palm
       g.lineStyle(1, 0x1b1b21, 1); g.beginPath();
-      for (const f of [-1.5, 0, 1.5]) { g.moveTo(hx - 1, hy); g.lineTo(hx - 6, hy + f); }                      // long fingers, clawing the floor
+      if (raised) for (const f of [-1.5, 0, 1.5]) { g.moveTo(hx, hy); g.lineTo(hx + f, hy - 5); }              // fingers splayed upward
+      else for (const f of [-1.5, 0, 1.5]) { g.moveTo(hx - 1, hy); g.lineTo(hx - 6, hy + f); }                  // long fingers, clawing the floor
       g.strokePath();
     }
   }
@@ -285,6 +321,6 @@ class Withered {
 Withered.SCALE = 2;                 // sprite is drawn 14x56 and shown 28x112
 Withered.HALF_W = 13; Withered.HEIGHT = 110;
 Withered.RISE = 0.1; Withered.OUT = 0.7; Withered.RETRACT = 0.15;
-Withered.HEART_Y = 104; Withered.LANCE_SPEED = 380;
 Withered.DESP_WARN = 2.4; Withered.DESP_OUT = 1.3;
+Withered.COLLAPSE_TIME = 2.2; Withered.DEBRIS_GRAVITY = 600;
 
