@@ -50,8 +50,10 @@ CFG.ODIN_HITS = 5; CFG.ODIN_BOSS_HITS = 3; CFG.ODIN_DROPS = 5; CFG.ODIN_TRIAL_RO
 CFG.HURT_INVULN = 1.5; // seconds of invulnerability after Tough Hide absorbs a hit
 CFG.JEFF_DESPAWN = 120000; // Jeff packs up and vanishes if you dawdle this long (ms)
 // Gambler's Coin (Jeff, VIP): press G to flip it. 70% GAMBLE_BOOST_TIME of speed + invincibility, 10% frozen solid for
-// GAMBLE_FREEZE_TIME and every extra life is negated for the rest of the room, 20% nothing happens. GAMBLE_COOLDOWN between flips.
+// GAMBLE_FREEZE_TIME and every extra life is negated for the rest of the room, 20% GAMBLE_SLOW_TIME of half speed and
+// double damage. GAMBLE_COOLDOWN between flips.
 CFG.GAMBLE_COOLDOWN = 20; CFG.GAMBLE_BOOST_TIME = 5; CFG.GAMBLE_FREEZE_TIME = 22; CFG.GAMBLE_SPEED = 1.4;
+CFG.GAMBLE_SLOW_TIME = 300; CFG.GAMBLE_SLOW_MULT = 0.5; CFG.GAMBLE_SLOW_DAMAGE = 2;
 
 // shop items; effects are applied in GameScene.applyUpgrades()
 const UPGRADES = [
@@ -93,7 +95,8 @@ const JEFF_ITEMS = [
     desc: "Requires Rampage of the Mountains to do anything. Doubles its duration (10 seconds) and halves its cooldown on top of Rampage Tonic." },
   { kind: 'vip', id: 'gamblersCoin', name: "Gambler's Coin", cost: 55, bones: 550,
     desc: 'Press G to flip it (20 second cooldown). 70% chance: speed boost and invincibility for 5 seconds. ' +
-          '10% chance: frozen solid for 22 seconds, and every extra life is negated for the rest of the room. 20% chance: nothing happens.' },
+          '10% chance: frozen solid for 22 seconds, and every extra life is negated for the rest of the room. ' +
+          '20% chance: 50% slower and take double damage for 5 minutes.' },
 ];
 
 // shared text style for the full-resolution menu scenes

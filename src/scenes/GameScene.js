@@ -39,7 +39,7 @@ class GameScene extends Phaser.Scene {
     this.chaseMark = null;
     this.rampageT = 0; this.rampageCd = 0; this.exhaustT = 0;   // Rampage of the Mountains: active / cooldown / tired timers
     this.shieldT = 0; this.shieldCd = 0; this.graceT = 0; this.shieldCharges = 0;      // Mountain Toughened Hide: shield / cooldown / boss-proof grace after a deflect
-    this.gambleCd = 0; this.gambleBoostT = 0; this.gambleFrozenT = 0; this.noExtraLives = false;   // Gambler's Coin: cooldown / lucky flip / frozen-solid timers, and the bad flip's HP penalty
+    this.gambleCd = 0; this.gambleBoostT = 0; this.gambleFrozenT = 0; this.gambleSlowT = 0; this.noExtraLives = false;   // Gambler's Coin: cooldown / lucky flip / frozen-solid / slowed-and-fragile timers, and the bad flip's HP penalty
     this.shieldG = this.add.graphics().setDepth(25);
 
     this.player = new Player(this);
@@ -219,6 +219,7 @@ class GameScene extends Phaser.Scene {
     if (this.gambleFrozenT > 0) p.body.setTint(Math.floor(this.gambleFrozenT * 6) % 2 ? 0x9fe8ff : 0xd8f8ff);
     else if (this.gambleBoostT > 0) p.body.setTint(Math.floor(this.gambleBoostT * 10) % 2 ? 0xffd23f : 0x7dffb2);
     else if (this.rampageT > 0) p.body.setTint(Math.floor(this.rampageT * 10) % 2 ? 0xffd23f : 0xff7a3f);
+    else if (this.gambleSlowT > 0) p.body.setTint(0x6b5b7a);
     else if (this.exhaustT > 0) p.body.setTint(0x8f96b8);
     else if (f > 0.02) p.body.setTint(Phaser.Display.Color.GetColor(255 - f * 110, 255 - f * 40, 255)); else p.body.clearTint();
 
@@ -370,9 +371,11 @@ class GameScene extends Phaser.Scene {
     this.gambleCd = Math.max(0, this.gambleCd - dt);
     this.gambleBoostT = Math.max(0, this.gambleBoostT - dt);
     this.gambleFrozenT = Math.max(0, this.gambleFrozenT - dt);
+    this.gambleSlowT = Math.max(0, this.gambleSlowT - dt);
     if (Save.has('gamblersCoin') && this.gambleCd <= 0 && this.gambleFrozenT <= 0 && pressed(k.gamble)) this.flipGamblersCoin();
     if (this.gambleFrozenT > 0) { inp.x = 0; inp.y = 0; inp.jumpPressed = false; inp.jumpHeld = false; inp.dashPressed = false; inp.grab = false; }
-    this.player.speedMult = this.rampageT > 0 ? CFG.RAMPAGE_SPEED : this.gambleBoostT > 0 ? CFG.GAMBLE_SPEED : this.exhaustT > 0 ? CFG.RAMPAGE_TIRED_SPEED : 1;
+    this.player.speedMult = this.rampageT > 0 ? CFG.RAMPAGE_SPEED : this.gambleBoostT > 0 ? CFG.GAMBLE_SPEED
+      : this.exhaustT > 0 ? CFG.RAMPAGE_TIRED_SPEED : this.gambleSlowT > 0 ? CFG.GAMBLE_SLOW_MULT : 1;
     this.player.hornScale = this.rampageT > 0 ? CFG.RAMPAGE_HORNS : 1;
     this.player.inPowder = !Save.has('odin') && this.player.state !== 'dash' && this.player.state !== 'leap' && this.inPowderSnow(this.player);
     this.player.update(dt, inp);
@@ -503,7 +506,8 @@ class GameScene extends Phaser.Scene {
     this.game.events.emit('toast', got > 0 ? `+${got} goat horn${got > 1 ? 's' : ''}!` : 'a goat horn shard...');
   }
 
-  // Gambler's Coin: 70% a lucky flip (speed + invincibility), 10% frozen solid and every extra life gone for the room, 20% a dud
+  // Gambler's Coin: 70% a lucky flip (speed + invincibility), 10% frozen solid and every extra life gone for the room,
+  // 20% cursed - half speed and double damage for 5 minutes
   flipGamblersCoin() {
     this.gambleCd = CFG.GAMBLE_COOLDOWN;
     const roll = Math.random();
@@ -521,7 +525,10 @@ class GameScene extends Phaser.Scene {
       this.game.events.emit('title', 'Unlucky flip! Frozen solid!');
       this.game.events.emit('toast', 'Extra lives negated for the room!');
     } else {
-      this.game.events.emit('toast', 'The coin lands flat. Nothing happens.');
+      this.gambleSlowT = CFG.GAMBLE_SLOW_TIME;
+      this.burst(this.player.centerX, this.player.centerY, 0x6b5b7a, 12, 70);
+      this.game.events.emit('title', 'Cursed flip! You feel sluggish...');
+      this.game.events.emit('toast', 'Slower and more fragile for 5 minutes!');
     }
   }
 
@@ -531,13 +538,14 @@ class GameScene extends Phaser.Scene {
     const p = this.player;
     if (p.state === 'dead' || p.invuln > 0 || this.rampageT > 0 || this.gambleBoostT > 0) return;
     if (!cold && this.tryDeflect()) return;
-    if (--this.hp <= 0) return this.killPlayer();
+    this.hp -= this.gambleSlowT > 0 ? CFG.GAMBLE_SLOW_DAMAGE : 1;   // a cursed coin flip doubles hazard damage
+    if (this.hp <= 0) return this.killPlayer();
     this.burst(p.centerX, p.centerY, 0xe8443c, 12, 110);
     this.cameras.main.shake(150, 0.008);
     this.freezeT = 0.06;
     p.respawnAtSafe();
     p.invuln = CFG.HURT_INVULN * (Save.has('hornedHelm') ? 2 : 1);
-    this.game.events.emit('toast', 'Tough hide! 1 hit left');
+    this.game.events.emit('toast', `Tough hide! ${this.hp} hit${this.hp > 1 ? 's' : ''} left`);
   }
 
   // the Withered dies: its bones arc through the air and land just in front of the player
@@ -708,8 +716,10 @@ class GameScene extends Phaser.Scene {
       : this.rampageCd > 0 ? `  rampage in ${Math.ceil(this.rampageCd)}s` : '  rampage: Q';
     const shield = !Save.has('mountainHide') ? '' : this.shieldT > 0 ? `  SHIELD x${this.shieldCharges}`
       : this.shieldCd > 0 ? `  shield in ${Math.ceil(this.shieldCd)}s` : '  shield: F';
+    const slowLeft = Math.ceil(this.gambleSlowT);
     const gamble = !Save.has('gamblersCoin') ? '' : this.gambleFrozenT > 0 ? `  FROZEN ${this.gambleFrozenT.toFixed(1)}s`
       : this.gambleBoostT > 0 ? `  LUCKY ${this.gambleBoostT.toFixed(1)}s`
+      : this.gambleSlowT > 0 ? `  CURSED ${Math.floor(slowLeft / 60)}:${(slowLeft % 60).toString().padStart(2, '0')}`
       : this.gambleCd > 0 ? `  coin in ${Math.ceil(this.gambleCd)}s` : '  gamble: G';
     // hide trial countdown while inside the boss chase (rooms 11-19)
     let trial = '';
