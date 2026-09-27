@@ -99,6 +99,22 @@ class BootScene extends Phaser.Scene {
       g.fillStyle(0xfff4b0); g.fillRect(2, 2, 1, 1);                                                 // shine
     });
 
+    // Stormlands tornado: a tapering funnel of grey-blue bands with lighter wind streaks
+    tex('tornado', 14, 18, g => {
+      g.fillStyle(0x8a92a6);
+      g.fillRect(0, 0, 14, 3); g.fillRect(1, 3, 12, 3); g.fillRect(2, 6, 10, 3);
+      g.fillRect(3, 9, 8, 3); g.fillRect(4, 12, 6, 3); g.fillRect(5, 15, 4, 3);
+      g.fillStyle(0xd4d9e6);
+      g.fillRect(1, 1, 3, 1); g.fillRect(9, 4, 3, 1); g.fillRect(3, 7, 3, 1);
+      g.fillRect(7, 10, 3, 1); g.fillRect(5, 13, 2, 1);
+    });
+    // the brick a tornado hurls
+    tex('brick', 6, 6, g => {
+      g.fillStyle(0x9a4a34); g.fillRect(0, 0, 6, 6);
+      g.fillStyle(0x7a3628); g.fillRect(0, 5, 6, 1); g.fillRect(5, 0, 1, 6);
+      g.fillStyle(0xb85f45); g.fillRect(0, 0, 5, 1); g.fillRect(0, 0, 1, 5);
+    });
+
     // giant boss goat (facing right, 48x48, shown at 2x). Second frame has the mouth open to scream.
     const drawBoss = (g, open) => {
       g.fillStyle(0xe8e2d4); g.fillRect(4, 18, 28, 18);                   // body

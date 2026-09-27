@@ -104,11 +104,11 @@ class MenuScene extends MenuBase {
       uiText(15, { color: '#9fb0d8' })).setOrigin(0.5);
   }
 
-  // rooms 1-65 are always pickable; room 75 and room 76 (the Merchant) join the list once you have reached them
+  // rooms 1-65 are always pickable; room 75, the Stormlands (76-100) and the Merchant join the list one at a time as you reach them
   choices() {
     const c = Array.from({ length: 65 }, (_, i) => i);
     if (Save.data.unlocked >= 74) c.push(74);
-    if (Save.data.unlocked >= 75) c.push(75);
+    for (let i = 75; i < LEVELS.length; i++) if (Save.data.unlocked >= i) c.push(i);
     return c;
   }
 
@@ -178,7 +178,7 @@ class ShopScene extends MenuBase {
 
 
 
-// Jeff the merchant (room 76): sells armour and items for goat horns only. His VIP tier also wants big piles of
+// Jeff the merchant (the Merchant's room, after the Stormlands): sells armour and items for goat horns only. His VIP tier also wants big piles of
 // Withered bones on top - the good stuff isn't cheap. Runs on top of the paused Game scene.
 const JEFF_TABS = ['armour', 'item', 'vip'];
 const JEFF_TAB_LABELS = { armour: '<  ARMOUR  >', item: '<  ITEMS  >', vip: '<  VIP ITEMS  >' };

@@ -54,6 +54,9 @@ CFG.JEFF_DESPAWN = 120000; // Jeff packs up and vanishes if you dawdle this long
 // double damage. GAMBLE_COOLDOWN between flips.
 CFG.GAMBLE_COOLDOWN = 20; CFG.GAMBLE_BOOST_TIME = 5; CFG.GAMBLE_FREEZE_TIME = 22; CFG.GAMBLE_SPEED = 1.4;
 CFG.GAMBLE_SLOW_TIME = 300; CFG.GAMBLE_SLOW_MULT = 0.5; CFG.GAMBLE_SLOW_DAMAGE = 2;
+// Stormlands tornadoes ('T' tile): every TORNADO_PERIOD seconds each one hurls a brick at wherever the goat currently is.
+// The first brick that ever clips you in a room only stuns you (can't act) for TORNADO_STUN seconds; every one after costs a life.
+CFG.TORNADO_PERIOD = 5; CFG.TORNADO_BRICK_SPEED = 70; CFG.TORNADO_STUN = 2;
 
 // shop items; effects are applied in GameScene.applyUpgrades()
 const UPGRADES = [
@@ -71,7 +74,7 @@ const UPGRADES = [
 // goat shop prices are paid in coins (no horns) and are 25% cheaper than the original list above (rounded down)
 UPGRADES.forEach(u => { u.cost = Math.floor(u.cost * 0.75); });
 
-// Jeff the merchant (room 76) sells armour and items for goat horns only - never coins. The VIP tier is the good stuff:
+// Jeff the merchant sells armour and items for goat horns only - never coins. The VIP tier is the good stuff:
 // it also demands big piles of Withered bones on top of its horns price. See Save.buyWithHorns / GameScene.applyUpgrades.
 const JEFF_ITEMS = [
   // armour (goat horns)

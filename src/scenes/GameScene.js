@@ -90,6 +90,7 @@ class GameScene extends Phaser.Scene {
 
     this.grid = []; this.spikes = []; this.crystals = []; this.coins = []; this.popSpikes = [];
     this.powder = [];                     // powder snow tiles, same layout as grid
+    this.tornadoes = []; this.bricks = []; this.tornadoWarned = false; this.brickStunT = 0;   // Stormlands: first brick just stuns, the rest cost a life
     this.roomT = 0; this.freeze = 0;    this.frost.clear(); this.player.body.clearTint();
     let spawn = { x: 16, y: 16 };
     for (let r = 0; r < CFG.ROWS; r++) {
@@ -105,6 +106,7 @@ class GameScene extends Phaser.Scene {
         else if (ch === 'D') this.addCrystal(px, py);
         else if (ch === 'a' || ch === 'b') this.addPopSpike(px, py, ch === 'b' ? 0.5 : 0);
         else if (ch === 'S' && !this.collected.has(`${index}:${c},${r}`)) this.addCoin(px, py, `${index}:${c},${r}`);
+        else if (ch === 'T') this.addTornado(px, py);
       }
       this.grid.push(row);
       this.powder.push(pow);
@@ -126,7 +128,7 @@ class GameScene extends Phaser.Scene {
       if (room.finale) this.addLeapPad(room.finale.leapX, groundY);
     }
     this.leaped = false;
-    if (room.merchant) this.spawnJeff(100);                                  // room 76: Jeff and his stall
+    if (room.merchant) this.spawnJeff(100);                                  // the Merchant's room: Jeff and his stall
 
     this.player.spawn(spawn.x, spawn.y);
     this.deadT = 0; this.transitioning = false;
@@ -217,6 +219,7 @@ class GameScene extends Phaser.Scene {
       g.fillRect(0, 0, t, CFG.H); g.fillRect(CFG.W - t, 0, t, CFG.H);
     }
     if (this.gambleFrozenT > 0) p.body.setTint(Math.floor(this.gambleFrozenT * 6) % 2 ? 0x9fe8ff : 0xd8f8ff);
+    else if (this.brickStunT > 0) p.body.setTint(Math.floor(this.brickStunT * 8) % 2 ? 0xffa060 : 0xffffff);
     else if (this.gambleBoostT > 0) p.body.setTint(Math.floor(this.gambleBoostT * 10) % 2 ? 0xffd23f : 0x7dffb2);
     else if (this.rampageT > 0) p.body.setTint(Math.floor(this.rampageT * 10) % 2 ? 0xffd23f : 0xff7a3f);
     else if (this.gambleSlowT > 0) p.body.setTint(0x6b5b7a);
@@ -285,6 +288,60 @@ class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: sprite, scaleX: 0.3, x: x + 2.8, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.inOut' });
     this.roomObjs.push(sprite);
     this.coins.push({ x, y, sprite, id });
+  }
+
+  // Stormlands 'T' tile: a little tornado that stands still and hurls a brick at wherever the goat is, on a timer
+  addTornado(x, y) {
+    const cx = x + 4, cy = y + 8;
+    const sprite = this.add.image(cx, cy, 'tornado').setOrigin(0.5, 1).setDepth(6);
+    this.tweens.add({ targets: sprite, x: cx - 1, yoyo: true, repeat: -1, duration: 220, ease: 'Sine.inOut' });   // a constant jitter, like it's spinning in place
+    this.roomObjs.push(sprite);
+    this.tornadoes.push({ x: cx, y: cy - 10, t: CFG.TORNADO_PERIOD * (0.3 + Math.random() * 0.7) });   // staggered so several don't throw in sync
+  }
+
+  updateTornadoes(dt) {
+    for (const t of this.tornadoes) {
+      t.t -= dt;
+      if (t.t <= 0) { t.t = CFG.TORNADO_PERIOD; this.throwBrick(t); }
+    }
+    for (const b of this.bricks) {
+      b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+      b.sprite.setPosition(Math.round(b.x), Math.round(b.y));
+      b.sprite.angle += 480 * dt;
+    }
+    this.bricks = this.bricks.filter(b => {
+      if (b.life > 0 && b.x > -10 && b.x < CFG.W + 10 && b.y > -10 && b.y < CFG.H + 10) return true;
+      b.sprite.destroy();
+      return false;
+    });
+    const p = this.player, hit = (a, b, s = 8) => a.x < b.x + s && a.x + CFG.PW > b.x && a.y < b.y + s && a.y + CFG.PH > b.y;
+    for (const b of this.bricks) if (!b.hit && hit(p, { x: b.x - 3, y: b.y - 3 }, 6)) { b.hit = true; this.brickHit(); }
+  }
+
+  throwBrick(t) {
+    const p = this.player;
+    const dx = p.centerX - t.x, dy = p.centerY - t.y, dist = Math.max(1, Math.hypot(dx, dy));
+    const sprite = this.add.image(t.x, t.y, 'brick').setOrigin(0.5).setDepth(9);
+    this.roomObjs.push(sprite);
+    this.bricks.push({ x: t.x, y: t.y, vx: dx / dist * CFG.TORNADO_BRICK_SPEED, vy: dy / dist * CFG.TORNADO_BRICK_SPEED, sprite, life: 4 });
+    this.burst(t.x, t.y, 0x9a4a34, 6, 60);
+  }
+
+  // the first brick that ever clips you in a room just stuns you; every one after is a real hit
+  brickHit() {
+    const p = this.player;
+    if (p.state === 'dead' || p.invuln > 0 || this.rampageT > 0 || this.gambleBoostT > 0) return;
+    if (this.tryDeflect()) return;
+    if (!this.tornadoWarned) {
+      this.tornadoWarned = true;
+      this.brickStunT = CFG.TORNADO_STUN;
+      p.invuln = CFG.HURT_INVULN;
+      this.burst(p.centerX, p.centerY, 0xffa060, 10, 90);
+      this.cameras.main.shake(150, 0.006);
+      this.game.events.emit('toast', 'A brick clips you - stunned!');
+    } else {
+      this.hurt();
+    }
   }
 
   // ---- collision helpers (used by Player) ----------------------------------
@@ -373,7 +430,8 @@ class GameScene extends Phaser.Scene {
     this.gambleFrozenT = Math.max(0, this.gambleFrozenT - dt);
     this.gambleSlowT = Math.max(0, this.gambleSlowT - dt);
     if (Save.has('gamblersCoin') && this.gambleCd <= 0 && this.gambleFrozenT <= 0 && pressed(k.gamble)) this.flipGamblersCoin();
-    if (this.gambleFrozenT > 0) { inp.x = 0; inp.y = 0; inp.jumpPressed = false; inp.jumpHeld = false; inp.dashPressed = false; inp.grab = false; }
+    this.brickStunT = Math.max(0, this.brickStunT - dt);
+    if (this.gambleFrozenT > 0 || this.brickStunT > 0) { inp.x = 0; inp.y = 0; inp.jumpPressed = false; inp.jumpHeld = false; inp.dashPressed = false; inp.grab = false; }
     this.player.speedMult = this.rampageT > 0 ? CFG.RAMPAGE_SPEED : this.gambleBoostT > 0 ? CFG.GAMBLE_SPEED
       : this.exhaustT > 0 ? CFG.RAMPAGE_TIRED_SPEED : this.gambleSlowT > 0 ? CFG.GAMBLE_SLOW_MULT : 1;
     this.player.hornScale = this.rampageT > 0 ? CFG.RAMPAGE_HORNS : 1;
@@ -425,6 +483,7 @@ class GameScene extends Phaser.Scene {
       if (h >= 5 && p.x < s.x + 8 && p.x + CFG.PW > s.x && p.y < s.y + 8 && p.y + CFG.PH > s.y + 8 - h)
         return this.hurt();
     }
+    if (this.tornadoes.length) this.updateTornadoes(dt);
     if (this.rise) {
       const r = this.rise;
       if (r.delay > 0) r.delay -= dt; else r.y -= r.speed * dt;
@@ -574,7 +633,7 @@ class GameScene extends Phaser.Scene {
     this.game.events.emit('title', `You got ${n} Withered bone${n > 1 ? 's' : ''}!`);
   }
 
-  // Jeff the merchant takes goat horns (and Withered bones for the VIP tier). He runs the stall in room 76 (V talks to him).
+  // Jeff the merchant takes goat horns (and Withered bones for the VIP tier). He runs the stall in the Merchant's room (V talks to him).
   spawnJeff(x, auto = false) {
     const ground = this.groundY;
     this.drawStall(x, ground);

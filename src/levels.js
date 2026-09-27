@@ -4,6 +4,7 @@
 // exit: 'right' | 'top' -> leaving the screen that way loads the next room.
 //   W  powder snow (see the Frostbite rooms below)
 //   a / b  popping spikes (groups a and b take turns sticking out of the floor)
+//   T  Stormlands tornado (stands still, hurls a brick at you every 5s - see GameScene.addTornado/updateTornadoes)
 // rise: { speed, delay } (optional) -> a spike floor rises from the bottom of the room.
 // boss: {...} (optional) -> giant goat chase, see Boss.js.  finale: { leapX, vx, vy } -> mega-leap pad at leapX.
 // Solid walls are implied on every side that isn't an exit.
@@ -683,8 +684,73 @@ LEVELS.push(
     { speed: 38, startX: -50, firstDelay: 2, spikeEvery: 3, desperateAfter: 4.5 },
     RUN([['f', 34]], g => { g.put(17, 26, 'S'); })),
 
-  // ---- ROOM 76: THE MERCHANT - a calm room. Jeff sells armour and items for coins (V to trade); the exit is the end of the game ----
-  { name: '76 - The Merchant', exit: 'right', merchant: true,
+  // ---- THE STORMLANDS (rooms 76-100): no bosses, just wind and wreckage - and in the last 10, tornadoes ('T') that
+  // hurl bricks at you every 5 seconds (GameScene.updateTornadoes). The first brick to ever clip you in a room just
+  // stuns you for 2 seconds; every one after costs a life, same as any other hazard. ---------------------------------
+  { name: '76 - Stormlands: First Gale', exit: 'right',
+    rows: RUN([['f', 3], ['pit', 4], ['f', 3], ['hur', 2], ['f', 3], ['drift', 4], ['f', 3], ['pit', 5, 'W'], ['f', 3]]) },
+  { name: '77 - Stormlands: Windswept Ledge', exit: 'right',
+    rows: RUN([['f', 2], ['pop', 1], ['f', 2], ['pit', 5], ['f', 2], ['tun', 5], ['f', 2], ['drift', 4], ['f', 2]]) },
+  { name: '78 - Stormlands: Loose Scree', exit: 'right',
+    rows: RUN([['f', 2], ['hur', 2], ['f', 2], ['hur', 2], ['f', 2], ['pit', 6, 'W'], ['f', 2], ['pop', 1], ['f', 2], ['pit', 4], ['f', 2]]) },
+  { name: '79 - Stormlands: Gale Steps', exit: 'right',
+    rows: RUN([['f', 2], ['pit', 5], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['drift', 4], ['f', 2]]) },
+  { name: '80 - Stormlands: Crosswind Chasm', exit: 'right',
+    rows: RUN([['f', 2], ['big', 9], ['f', 3], ['big', 9, 'W'], ['f', 3], ['pop', 1], ['f', 3]]) },
+  { name: '81 - Stormlands: Rimewind Wall', exit: 'top', rows: CLIMB_WALL({ drift: true }) },
+  { name: '82 - Stormlands: Thunderhead', exit: 'right',
+    rows: RUN([['f', 2], ['drift', 5], ['f', 2], ['pit', 5], ['f', 2], ['tun', 5], ['f', 2], ['pit', 4, 'W'], ['f', 2], ['hur', 2], ['f', 2]]) },
+  { name: '83 - Stormlands: Squall Line', exit: 'right',
+    rows: RUN([['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['big', 8], ['f', 2], ['pop', 1], ['f', 2]]) },
+  { name: '84 - Stormlands: Broken Scaffold', exit: 'right',
+    rows: RUN([['f', 2], ['pop', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['drift', 5], ['f', 2]]) },
+  { name: '85 - Stormlands: Hollow Gust', exit: 'right',
+    rows: RUN([['f', 2], ['tun', 5], ['f', 2], ['tun', 5], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['drift', 4], ['f', 2], ['pit', 4], ['f', 2]]) },
+  { name: '86 - Stormlands: Rising Squall', exit: 'top', rise: { speed: 6, delay: 2 }, rows: CLIMB_POP() },
+  { name: '87 - Stormlands: Storm Cellar', exit: 'right',
+    rows: RUN([['f', 2], ['pit', 6], ['f', 2], ['tun', 5], ['f', 2], ['pop', 1], ['f', 2], ['pit', 5, 'W'], ['f', 2]]) },
+  { name: '88 - Stormlands: Shattered Steps', exit: 'right',
+    rows: RUN([['f', 2], ['hur', 2], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 5]]) },
+  { name: '89 - Stormlands: Ladder in the Wind', exit: 'top', rise: { speed: 8, delay: 2 },
+    rows: CLIMB_LADDER([[16, 9, 12], [12, 17, 20], [8, 25, 28], [4, 12, 15]]) },
+  { name: '90 - Stormlands: The Lull Before', exit: 'right',
+    rows: RUN([['f', 5], ['pit', 4], ['f', 5], ['drift', 4], ['f', 5], ['pop', 1], ['f', 5]]) },
+
+  // the last 10 Stormlands rooms: little tornadoes ('T') stand in the open and hurl bricks at you every 5 seconds
+  { name: '91 - Stormlands: Tornado Alley', exit: 'right',
+    rows: RUN([['f', 5], ['pit', 5], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5, 'W'], ['f', 5]], g => { g.put(17, 15, 'T'); }) },
+  { name: '92 - Stormlands: Funnel Steps', exit: 'right',
+    rows: RUN([['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3]], g => { g.put(17, 17, 'T'); }) },
+  { name: '93 - Stormlands: Debris Field', exit: 'right',
+    rows: RUN([['f', 4], ['big', 8], ['f', 4], ['pit', 5], ['f', 4], ['big', 8, 'W'], ['f', 4]],
+      g => { g.put(17, 16, 'T'); g.put(17, 37, 'T'); }) },
+  { name: '94 - Stormlands: Twin Funnels', exit: 'right',
+    rows: RUN([['f', 3], ['pit', 5], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3]],
+      g => { g.put(17, 12, 'T'); g.put(17, 25, 'T'); }) },
+  { name: '95 - Stormlands: Windbreak Wall', exit: 'top',
+    rows: B(g => {
+      g.fill(22, 22, 0, 39, '#'); g.put(21, 2, 'P');
+      g.fill(9, 21, 20, 21, '#');                                          // wall to climb
+      g.put(19, 6, '####'); g.put(18, 7, 'S');
+      g.put(16, 12, '####'); g.put(15, 13, 'T');                           // a tornado waits on this ledge
+      g.put(8, 22, 'D'); g.put(6, 24, '######'); g.put(5, 26, 'S');
+    }) },
+  { name: '96 - Stormlands: Rubble Run', exit: 'right',
+    rows: RUN([['f', 3], ['pop', 1], ['f', 3], ['pit', 5], ['f', 3], ['pop', 1], ['f', 3], ['pit', 5, 'W'], ['f', 3]], g => { g.put(17, 13, 'T'); }) },
+  { name: '97 - Stormlands: The Vortex Gap', exit: 'right',
+    rows: RUN([['f', 3], ['big', 9], ['f', 3], ['big', 9, 'W'], ['f', 3], ['pit', 4], ['f', 3]],
+      g => { g.put(17, 16, 'T'); g.put(17, 35, 'T'); }) },
+  { name: "98 - Stormlands: Storm's Edge", exit: 'right',
+    rows: RUN([['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['big', 8], ['f', 2]],
+      g => { g.put(17, 10, 'T'); g.put(17, 35, 'T'); }) },
+  { name: '99 - Stormlands: Maelstrom', exit: 'right',
+    rows: RUN([['f', 2], ['pit', 5], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['big', 8], ['f', 2], ['pit', 5], ['f', 2]],
+      g => { g.put(17, 10, 'T'); g.put(17, 17, 'T'); g.put(17, 27, 'T'); }) },
+  { name: '100 - Stormlands: Eye of the Storm', exit: 'right',
+    rows: RUN([['f', 34]], g => { g.put(17, 6, 'T'); g.put(17, 14, 'T'); g.put(17, 26, 'T'); g.put(17, 34, 'T'); g.put(17, 20, 'S'); }) },
+
+  // ---- ROOM 101: THE MERCHANT - a calm room. Jeff sells armour and items for horns and bones (V to trade); the exit is the end of the game ----
+  { name: '101 - The Merchant', exit: 'right', merchant: true,
     rows: RUN([['f', 37]], g => { g.put(17, 22, 'S'); g.put(17, 30, 'S'); }) },
 );
 
