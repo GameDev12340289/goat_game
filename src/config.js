@@ -49,6 +49,7 @@ CFG.BONES_MIN = 1; CFG.BONES_MAX = 5;   // Withered bones dropped per kill
 CFG.ODIN_HITS = 5; CFG.ODIN_BOSS_HITS = 3; CFG.ODIN_DROPS = 5; CFG.ODIN_TRIAL_ROOM = 10; CFG.ODIN_TRIAL_TIME = 90;
 CFG.HURT_INVULN = 1.5; // seconds of invulnerability after Tough Hide absorbs a hit
 CFG.JEFF_DESPAWN = 120000; // Jeff packs up and vanishes if you dawdle this long (ms)
+CFG.LEAP_IFRAME = 2; // seconds of invulnerability (hazards and boss attacks) right after landing a boss-chase finale leap
 // Gambler's Coin (Jeff, VIP): press G to flip it. 70% GAMBLE_BOOST_TIME of speed + invincibility, 10% frozen solid for
 // GAMBLE_FREEZE_TIME and every extra life is negated for the rest of the room, 20% GAMBLE_SLOW_TIME of half speed and
 // double damage. GAMBLE_COOLDOWN between flips.

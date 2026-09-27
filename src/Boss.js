@@ -75,8 +75,10 @@ class Boss {
     this.draw();
 
     // ---- collisions ----
+    // once it's falling into the chasm it's done as a threat: no body, shockwave or spike can hurt you after the jump
+    if (this.state === 'fall') return false;
     const hit = (x, y, w, h) => p.x < x + w && p.x + CFG.PW > x && p.y < y + h && p.y + CFG.PH > y;
-    if (this.state !== 'fall' && hit(this.x - 88, CFG.H - 88, 86, 88)) return true;   // the body
+    if (hit(this.x - 88, CFG.H - 88, 86, 88)) return true;   // the body
     for (const w of this.waves) if (hit(w.x - 3, this.groundY - 18, 6, 18)) return true; // shockwave
     for (const a of this.attacks) {
       const r = this.strikeRect(a);
@@ -102,6 +104,7 @@ class Boss {
     this.state = 'fall';
     this.fallVy = -70;                                   // a last little hop before it drops
     this.spikeT = Infinity; this.screamT = Infinity;
+    this.waves = []; this.attacks = [];                  // it's done as a threat - no lingering shockwave or spikes can kill you after the jump
     this.sprite.setTexture('bossScream');
     this.playScream();
     this.scene.cameras.main.shake(700, 0.014);

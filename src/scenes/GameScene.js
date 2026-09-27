@@ -127,7 +127,7 @@ class GameScene extends Phaser.Scene {
       this.boss = room.boss.withered ? new Withered(this, room.boss, groundY) : new Boss(this, room.boss, groundY);
       if (room.finale) this.addLeapPad(room.finale.leapX, groundY);
     }
-    this.leaped = false; this.leapJeffSpawned = false;   // Jeff shows up once you land the mega-leap out of a boss chase
+    this.leaped = false; this.leapJeffSpawned = false; this.leapSafe = false;   // Jeff shows up (and the boss can't hurt you) once you land the mega-leap out of a boss chase
     if (room.merchant) this.spawnJeff(100);                                  // the Merchant's room: Jeff and his stall
 
     this.player.spawn(spawn.x, spawn.y);
@@ -460,14 +460,20 @@ class GameScene extends Phaser.Scene {
       this.cameras.main.shake(250, 0.008);
       this.burst(p.centerX, p.y + CFG.PH, 0xffd23f, 14, 90);
     }
-    // Jeff shows up once the mega-leap lands safely - he's proud of you for outrunning that goat
+    // once the mega-leap lands safely: the boss can never hurt you again this room (whether or not it's actually
+    // fallen in yet), so it's safe to stick around and browse Jeff's wares. Plus a couple of hazard iframes as a
+    // landing buffer, and Jeff shows up to say well done.
     if (fin && this.leaped && !this.leapJeffSpawned && p.state === 'normal') {
       this.leapJeffSpawned = true;
-      this.spawnJeff(Math.min(p.x + 60, CFG.W - 30));
+      this.leapSafe = true;
+      p.invuln = Math.max(p.invuln, CFG.LEAP_IFRAME);
+      this.spawnJeff(Math.min(p.x + 60, CFG.W - 30), { stall: false });
     }
     // boss attacks (body, shockwave, summoned spikes) are exceptions to Tough Hide: always instant death
-    // (a raised shield reflects the attack instead and stuns the boss)
-    if (this.boss && this.boss.update(dt, p) && this.rampageT <= 0 && this.gambleBoostT <= 0 && this.graceT <= 0) {
+    // (a raised shield reflects the attack instead and stuns the boss). Still updated while leapSafe so its
+    // own animation (e.g. falling into the chasm) keeps playing out - only the hit result is ignored.
+    const bossAttacked = this.boss && this.boss.update(dt, p);
+    if (bossAttacked && !this.leapSafe && this.rampageT <= 0 && this.gambleBoostT <= 0 && this.graceT <= 0) {
       if (this.boss.noDeflect) return this.killPlayer();
       if (this.tryDeflect(CFG.SHIELD_BOSS_COST)) this.boss.deflect(p);
       else if (!this.odinBossHit()) return this.killPlayer();
