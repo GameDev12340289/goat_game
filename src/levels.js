@@ -322,6 +322,7 @@ const LEVELS = [
     finale: { leapX: 168, vx: 150, vy: -400 },
     rows: R([
       ...ground(21, [[10, 4], [24, 10]]),
+      [22, '#'.repeat(10) + '^'.repeat(4) + '#'.repeat(10) + '.'.repeat(10) + '#'.repeat(6)],   // no spikes in the chasm the goat falls into - a bottomless void
       [9, d(29) + 'S'],
       [15, d(12) + 'S'],
       [20, '..P' + d(14) + '##'],
@@ -552,6 +553,7 @@ const LEVELS = [
     finale: { leapX: 168, vx: 150, vy: -400 },
     rows: B(g => {
       g.floor(21, [[10, 4, 'W'], [24, 10]]); g.put(20, 2, 'P'); g.put(20, 17, '##');
+      g.put(22, 24, '..........');   // no spikes at the bottom of the chasm the goat falls into - it's a bottomless void
       g.put(9, 29, 'S'); g.put(15, 12, 'S');
     }),
   },
