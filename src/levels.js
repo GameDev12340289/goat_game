@@ -1,4 +1,4 @@
-﻿// Rooms are 40x23 tile grids. Short rows are padded with '.', so only the leading part matters.
+// Rooms are 40x23 tile grids. Short rows are padded with '.', so only the leading part matters.
 //   #  solid      ^  spike (floor)     P  player spawn
 //   D  dash crystal                    S  coin
 // exit: 'right' | 'top' -> leaving the screen that way loads the next room.
@@ -609,6 +609,7 @@ const CLIMB_LADDER = drifts => B(g => {               // the Rising Powder layou
 });
 
 const WITHERED = (n, name, boss, rows) => ({ name: `${n} - ${name}`, exit: 'right', boss: { withered: true, ...boss }, rows });
+const CYCLONE = (n, name, boss, rows) => ({ name: `${n} - The Cyclone: ${name}`, exit: 'right', boss: { cyclone: true, ...boss }, rows });
 
 LEVELS.push(
   { name: '41 - The Long Winter: Thaw', exit: 'right',
@@ -751,11 +752,54 @@ LEVELS.push(
   { name: '100 - Stormlands: Eye of the Storm', exit: 'right',
     rows: RUN([['f', 34]], g => { g.put(17, 6, 'T'); g.put(17, 14, 'T'); g.put(17, 26, 'T'); g.put(17, 34, 'T'); g.put(17, 20, 'S'); }) },
 
-  // ---- ROOM 101: THE MERCHANT - a calm room. Jeff sells armour and items for horns and bones (V to trade); the exit is the end of the game ----
-  { name: '101 - The Merchant', exit: 'right', merchant: true,
-    rows: RUN([['f', 37]], g => { g.put(17, 22, 'S'); g.put(17, 30, 'S'); }) },
+  // ---- THE CYCLONE (rooms 101-120): a giant tornado chases you, dropping a small tornado just ahead of you every 2-5
+  // seconds (and, from room 106, dust devils that race along the floor). Small tornado touches: stun, then knockback,
+  // then it flings you into the Cyclone. Room 120: the gale pins you in the corner - then the wind stops, the Cyclone
+  // dies out and Jeff sets up shop (V to trade); the exit is the end of the game. See Cyclone.js.
+  CYCLONE(101, 'First Winds', { speed: 26, startX: -100, firstDelay: 3 },
+    RUN([['f', 4], ['pit', 4], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5], ['f', 6]])),
+  CYCLONE(102, 'Funnel Chase', { speed: 27, startX: -98 },
+    RUN([['f', 3], ['hur', 2], ['f', 4], ['pit', 5], ['f', 4], ['hur', 2], ['f', 4], ['pit', 4], ['f', 4]])),
+  CYCLONE(103, 'Swept Away', { speed: 28, startX: -96 },
+    RUN([['f', 3], ['big', 8], ['f', 4], ['pit', 5], ['f', 4], ['hur', 2], ['f', 5]])),
+  CYCLONE(104, 'Debris Rain', { speed: 29, startX: -94 },
+    RUN([['f', 3], ['pit', 5, 'W'], ['f', 4], ['hur', 2], ['f', 4], ['pit', 5], ['f', 4], ['drift', 3], ['f', 3]])),
+  CYCLONE(105, 'Gale Force', { speed: 30, startX: -92 },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['big', 8], ['f', 4], ['hur', 2], ['f', 3]])),
+  CYCLONE(106, 'Dust Devils', { speed: 30, startX: -92, runnerEvery: 7 },
+    RUN([['f', 4], ['pit', 4], ['f', 5], ['pit', 5], ['f', 5], ['hur', 2], ['f', 5]])),
+  CYCLONE(107, 'Spiral Steps', { speed: 31, startX: -90, runnerEvery: 6.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 4], ['f', 3]])),
+  CYCLONE(108, "The Twister's Wake", { speed: 32, startX: -90, runnerEvery: 6.5 },
+    RUN([['f', 3], ['pit', 5, 'W'], ['f', 3], ['big', 8], ['f', 3], ['pit', 5], ['f', 4]])),
+  CYCLONE(109, 'Whirlwind Gap', { speed: 32, startX: -88, runnerEvery: 6 },
+    RUN([['f', 3], ['big', 9], ['f', 4], ['big', 9], ['f', 4], ['hur', 2], ['f', 3]])),
+  CYCLONE(110, 'Eye Wall', { speed: 33, startX: -88, runnerEvery: 6 },
+    RUN([['f', 3], ['pop', 1], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3]])),
+  CYCLONE(111, 'Uprooted', { speed: 34, startX: -86, runnerEvery: 5.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 3], ['big', 8], ['f', 3]])),
+  CYCLONE(112, 'Storm Surge', { speed: 34, startX: -86, runnerEvery: 5.5 },
+    RUN([['f', 3], ['pit', 5], ['f', 3], ['pit', 5], ['f', 3], ['pit', 5], ['f', 3], ['drift', 3], ['f', 3]])),
+  CYCLONE(113, 'Flying Rubble', { speed: 35, startX: -84, runnerEvery: 5 },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 3]])),
+  CYCLONE(114, 'Vortex Run', { speed: 36, startX: -84, runnerEvery: 5 },
+    RUN([['f', 3], ['pop', 1], ['f', 3], ['big', 8], ['f', 3], ['pit', 5], ['f', 4]])),
+  CYCLONE(115, 'Screaming Wind', { speed: 36, startX: -82, runnerEvery: 4.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 3]])),
+  CYCLONE(116, 'Torn Earth', { speed: 37, startX: -82, runnerEvery: 4.5 },
+    RUN([['f', 3], ['big', 9], ['f', 3], ['pit', 5], ['f', 3], ['big', 8], ['f', 3]])),
+  CYCLONE(117, 'The Long Gust', { speed: 38, startX: -80, runnerEvery: 4.5 },
+    RUN([['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['pop', 1], ['f', 3]])),
+  CYCLONE(118, 'Heart of the Storm', { speed: 39, startX: -80, runnerEvery: 4 },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['big', 8, 'W'], ['f', 3], ['hur', 2], ['f', 3], ['pit', 4]])),
+  CYCLONE(119, 'Last Gale', { speed: 40, startX: -78, runnerEvery: 4 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3], ['big', 8], ['f', 3], ['hur', 2], ['f', 3], ['pit', 4]])),
+  // the last room: flat floor, sealed exit. After finalStand seconds the gale pins you in the right-hand corner and the
+  // Cyclone closes in - then the wind stops dead, the Cyclone dies out, the exit opens and Jeff sets up his stall.
+  CYCLONE(120, 'Cornered', { speed: 32, startX: -90, runnerEvery: 5, finalStand: 7 },
+    RUN([['f', 34]], g => { g.put(17, 22, 'S'); g.put(17, 30, 'S'); })),
 );
 
-// goat horns: rooms 11-19 keep their old rewards; of the Frostbite rooms only 20 and 40 pay out (1 horn each)
-LEVELS.forEach((lv, i) => { if (i >= 19) lv.horns = (i === 19 || i === 39) ? 1 : 0; });
+// goat horns: rooms 11-19 keep their old rewards; of the later rooms only 20, 40 and 120 (the Cyclone) pay out (1 horn each)
+LEVELS.forEach((lv, i) => { if (i >= 19) lv.horns = (i === 19 || i === 39 || i === 119) ? 1 : 0; });
 

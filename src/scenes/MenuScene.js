@@ -104,7 +104,7 @@ class MenuScene extends MenuBase {
       uiText(15, { color: '#9fb0d8' })).setOrigin(0.5);
   }
 
-  // rooms 1-65 are always pickable; room 75, the Stormlands (76-100) and the Merchant join the list one at a time as you reach them
+  // rooms 1-65 are always pickable; room 75, the Stormlands (76-100) and the Cyclone (101-120) join the list one at a time as you reach them
   choices() {
     const c = Array.from({ length: 65 }, (_, i) => i);
     if (Save.data.unlocked >= 74) c.push(74);
@@ -178,7 +178,7 @@ class ShopScene extends MenuBase {
 
 
 
-// Jeff the merchant (the Merchant's room, after the Stormlands): sells armour and items for goat horns only. His VIP tier also wants big piles of
+// Jeff the merchant (sets up shop in room 120, once the Cyclone dies out): sells armour and items for goat horns only. His VIP tier also wants big piles of
 // Withered bones on top - the good stuff isn't cheap. Runs on top of the paused Game scene.
 const JEFF_TABS = ['armour', 'item', 'vip'];
 const JEFF_TAB_LABELS = { armour: '<  ARMOUR  >', item: '<  ITEMS  >', vip: '<  VIP ITEMS  >' };

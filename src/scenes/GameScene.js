@@ -118,13 +118,16 @@ class GameScene extends Phaser.Scene {
 
     // boss rooms: the shockwave travels along the floor the player spawns on
     this.boss = null; this.bones = null; this.jeff = null;
-    this.exitLocked = !!(room.boss && room.boss.desperateAfter);   // the last room stays shut until the Withered's bones are taken
+    this.fling = null; this.windHits = 0;                            // the Cyclone: how many of its small tornadoes have caught you this room
+    // the Withered's last room stays shut until its bones are taken; the Cyclone's until the wind stops
+    this.exitLocked = !!(room.boss && (room.boss.desperateAfter || room.boss.finalStand));
     let groundY = CFG.H;
     for (let r = Math.floor((spawn.y + CFG.PH) / CFG.TILE); r < CFG.ROWS; r++)
       if (this.isSolid(Math.floor(spawn.x / CFG.TILE), r)) { groundY = r * CFG.TILE; break; }
     this.groundY = groundY;
     if (room.boss) {
-      this.boss = room.boss.withered ? new Withered(this, room.boss, groundY) : new Boss(this, room.boss, groundY);
+      const Kind = room.boss.withered ? Withered : room.boss.cyclone ? Cyclone : Boss;
+      this.boss = new Kind(this, room.boss, groundY);
       if (room.finale) this.addLeapPad(room.finale.leapX, groundY);
     }
     this.leaped = false; this.leapJeffSpawned = false; this.leapSafe = false;   // Jeff shows up (and the boss can't hurt you) once you land the mega-leap out of a boss chase
@@ -344,6 +347,50 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  // one of the Cyclone's small tornadoes caught you: the 1st stuns you, the 2nd blows you backwards and the 3rd
+  // flings you into the Cyclone itself. Returns true if the touch counted (so the little tornado blows itself out).
+  windTouch() {
+    const p = this.player;
+    if (p.state === 'dead' || this.fling || this.rampageT > 0 || this.gambleBoostT > 0) return false;
+    if (this.tryDeflect()) return true;
+    this.windHits++;
+    this.burst(p.centerX, p.centerY, 0xd4d9e6, 12, 100);
+    this.cameras.main.shake(150, 0.006);
+    if (this.windHits === 1) {
+      this.brickStunT = CFG.CYCLONE_STUN;
+      p.invuln = CFG.CYCLONE_TOUCH_IFRAME;
+      this.game.events.emit('toast', 'Caught in the wind - stunned!');
+    } else if (this.windHits === 2) {
+      p.state = 'normal'; p.dashTimer = 0; p.varJump = 0; p.remX = 0; p.remY = 0;
+      p.vx = -CFG.CYCLONE_PUSH_VX; p.vy = CFG.CYCLONE_PUSH_VY;
+      p.wallJumpLock = CFG.CYCLONE_PUSH_LOCK; p.wallJumpDir = -1;     // no steering out of it for a moment
+      p.invuln = CFG.CYCLONE_TOUCH_IFRAME;
+      this.game.events.emit('toast', 'The wind hurls you backwards! Once more and it takes you');
+    } else {
+      p.state = 'fling';
+      this.fling = { t: 0, x0: p.x, y0: p.y, ghostT: 0 };
+      this.cameras.main.shake(400, 0.012);
+      this.game.events.emit('title', 'The storm flings you into the Cyclone!');
+    }
+    return true;
+  }
+
+  // the 3rd touch: you're swept up in an arc into the heart of the Cyclone, and that's the end of this attempt
+  updateFling(dt) {
+    const f = this.fling, p = this.player, b = this.boss;
+    this.time_ += dt; f.t += dt;
+    if (b) b.update(dt, p);
+    const u = Math.min(1, f.t / CFG.CYCLONE_FLING_TIME);
+    const tx = (b ? b.x : f.x0 - 60) - CFG.PW / 2, ty = b ? b.groundY - 60 : f.y0;
+    p.x = Math.round(f.x0 + (tx - f.x0) * u);
+    p.y = Math.round(f.y0 + (ty - f.y0) * u - Math.sin(u * Math.PI) * 24);
+    p.facing = 1; p.sync();
+    f.ghostT -= dt;
+    if (f.ghostT <= 0) { f.ghostT = 0.04; this.spawnGhost(p); }
+    if (u >= 1) { this.fling = null; this.windHits = 0; this.brickStunT = 0; p.state = 'normal'; this.killPlayer(true); }   // the count starts over: next touch is a stun again
+    this.updateHud();
+  }
+
   // ---- collision helpers (used by Player) ----------------------------------
   isSolid(c, r) {
     if (c < 0) return true;
@@ -394,6 +441,7 @@ class GameScene extends Phaser.Scene {
       if (this.deadT <= 0) this.loadRoom(this.roomIndex);
       return;
     }
+    if (this.fling) return this.updateFling(dt);
 
     const k = this.keys;
     const inp = {
@@ -803,7 +851,8 @@ class GameScene extends Phaser.Scene {
       const left2 = CFG.ODIN_TRIAL_TIME - t;
       trial += this.deaths === 0 && left2 > 0 ? `  odin trial ${Math.floor(left2 / 60)}:${Math.floor(left2 % 60).toString().padStart(2, '0')}` : '  odin trial failed';
     }
-    this.game.events.emit('hud', `${m}:${s}  deaths ${this.deaths}${hp}${ramp}${shield}${gamble}${trial}`);
+    const wind = this.boss instanceof Cyclone ? `  wind ${this.windHits}/3` : '';   // Cyclone rooms: small-tornado touches so far
+    this.game.events.emit('hud', `${m}:${s}  deaths ${this.deaths}${hp}${ramp}${shield}${gamble}${trial}${wind}`);
   }
 }
 

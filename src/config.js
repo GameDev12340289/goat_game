@@ -58,6 +58,10 @@ CFG.GAMBLE_SLOW_TIME = 300; CFG.GAMBLE_SLOW_MULT = 0.5; CFG.GAMBLE_SLOW_DAMAGE =
 // Stormlands tornadoes ('T' tile): every TORNADO_PERIOD seconds each one hurls a brick at wherever the goat currently is.
 // The first brick that ever clips you in a room only stuns you (can't act) for TORNADO_STUN seconds; every one after costs a life.
 CFG.TORNADO_PERIOD = 5; CFG.TORNADO_BRICK_SPEED = 70; CFG.TORNADO_STUN = 2;
+// The Cyclone (rooms 101-120, see Cyclone.js): touching one of its small tornadoes stuns you the 1st time (CYCLONE_STUN s),
+// blows you backwards the 2nd (CYCLONE_PUSH_* for CYCLONE_PUSH_LOCK s), and the 3rd flings you into the Cyclone - death.
+CFG.CYCLONE_STUN = 1.5; CFG.CYCLONE_PUSH_VX = 260; CFG.CYCLONE_PUSH_VY = -110; CFG.CYCLONE_PUSH_LOCK = 0.3;
+CFG.CYCLONE_TOUCH_IFRAME = 0.6; CFG.CYCLONE_FLING_TIME = 0.55;
 
 // shop items; effects are applied in GameScene.applyUpgrades()
 const UPGRADES = [
