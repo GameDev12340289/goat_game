@@ -25,12 +25,12 @@ function coinCounter(scene) {
   return scene.add.text(W - 24 - 40, 26, String(Save.data.coins), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
 }
 
-// goat horns and Withered bones are still saved between runs, so they get a counter under the coin count
+// goat horns are still saved between runs, so they get a counter under the coin count
 function stashCounter(scene) {
   const Z = CFG.ZOOM, W = CFG.W * Z;
   return scene.add.text(W - 24, 52, '', uiText(16, { color: '#e9e6d2', align: 'right' })).setOrigin(1, 0);
 }
-const stashText = () => `goat horns ${Save.data.horns}\nWithered bones ${Save.data.witheredBones}`;
+const stashText = () => `goat horns ${Save.data.horns}`;
 
 // Simple vertical menu: subclasses fill this.items with { text: () => string, run: () => void }
 class MenuBase extends Phaser.Scene {
@@ -100,11 +100,11 @@ class MenuScene extends MenuBase {
     this.pickRoom(0);
 
     this.add.text(W / 2, H - 22,
-      'move: arrows / WASD    jump: C    dash: Right Shift    grab: W    retry: R    pause: ESC    rampage: Q    shield: F    gamble: G',
+      'move: arrows / WASD    jump: C    dash: Shift    grab: W    retry: R    pause: ESC    rampage: Q    shield: F    gamble: G',
       uiText(15, { color: '#9fb0d8' })).setOrigin(0.5);
   }
 
-  // rooms 1-65 are always pickable; room 75, the Stormlands (76-100) and the Cyclone (101-120) join the list one at a time as you reach them
+  // rooms 1-65 are always pickable; room 75, the Stormlands (76-100), the Cyclone (101-120) and the Wreckage (121-150) join the list one at a time as you reach them
   choices() {
     const c = Array.from({ length: 65 }, (_, i) => i);
     if (Save.data.unlocked >= 74) c.push(74);
@@ -178,8 +178,8 @@ class ShopScene extends MenuBase {
 
 
 
-// Jeff the merchant (sets up shop in room 120, once the Cyclone dies out): sells armour and items for goat horns only. His VIP tier also wants big piles of
-// Withered bones on top - the good stuff isn't cheap. Runs on top of the paused Game scene.
+// Jeff the merchant (sets up shop in room 120, once the Cyclone dies out): sells armour, items and his VIP tier for goat horns only.
+// Runs on top of the paused Game scene.
 const JEFF_TABS = ['armour', 'item', 'vip'];
 const JEFF_TAB_LABELS = { armour: '<  ARMOUR  >', item: '<  ITEMS  >', vip: '<  VIP ITEMS  >' };
 
@@ -191,10 +191,9 @@ class JeffScene extends MenuBase {
     this.add.rectangle(W / 2, H / 2, W, H, 0x05060d, 0.86);
     this.add.image(90, 230, 'jeff').setOrigin(0.5, 1).setScale(8);
     this.add.text(W / 2 + 40, 56, "JEFF'S WARES", uiText(56, { color: '#7dffb2' })).setOrigin(0.5);
-    this.add.text(W / 2 + 40, 100, 'horns buy the wares. bones buy the good stuff.', uiText(18, { color: '#9fb0d8' })).setOrigin(0.5);
+    this.add.text(W / 2 + 40, 100, 'horns buy the wares. lots of horns buy the good stuff.', uiText(18, { color: '#9fb0d8' })).setOrigin(0.5);
     this.add.image(W - 24, 26, 'horn').setOrigin(1, 0.5).setScale(4);
     this.horns = this.add.text(W - 24 - 40, 26, String(Save.data.horns), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
-    this.stash = this.add.text(W - 24, 52, this.stashText(), uiText(16, { color: '#e9e6d2', align: 'right' })).setOrigin(1, 0);
     this.tabText = this.add.text(W / 2 + 40, 146, '', uiText(22, { color: '#ffd23f' })).setOrigin(0.5);
     this.msg = this.add.text(W / 2, H - 30, '', uiText(18, { color: '#ffd23f' })).setOrigin(0.5);
     this.desc = this.add.text(W / 2, H - 92, '', uiText(18, { align: 'center', wordWrap: { width: 800 } })).setOrigin(0.5);
@@ -207,7 +206,7 @@ class JeffScene extends MenuBase {
     ['ESC', 'BACKSPACE', 'V'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.close()));
   }
 
-  price(u) { return u.bones ? `${u.cost}h ${u.bones}b` : `${u.cost} horns`; }
+  price(u) { return `${u.cost} horns`; }
 
   // the wares on the current tab, plus LEAVE
   tabItems() {
@@ -242,11 +241,8 @@ class JeffScene extends MenuBase {
     };
     this.msg.setText(say[r]).setColor(r === 'ok' ? '#7dffb2' : '#ff7070');
     this.horns.setText(String(Save.data.horns));
-    this.stash.setText(this.stashText());
     this.refresh();
   }
-
-  stashText() { return `Withered bones ${Save.data.witheredBones}`; }
 
   refresh() {
     if (!this.labels) return;

@@ -18,17 +18,20 @@ Object.assign(GameScene.prototype, {
     this.drawPowder();
     this.rise = room.rise ? this.addRisingSpikes(room.rise) : null;
 
-    this.boss = null; this.bones = null; this.jeff = null;
+    this.boss = null; this.hornDrop = null; this.jeff = null;
     this.fling = null; this.windHits = 0;                            // the Cyclone: how many of its small tornadoes have caught you this room
-    // the Withered's last room stays shut until its bones are taken; the Cyclone's until the wind stops
-    this.exitLocked = !!(room.boss && (room.boss.desperateAfter || room.boss.finalStand));
+    // room 75 stays shut until the elder goat's horns are picked up; the Cyclone's until the wind stops
+    this.exitLocked = !!(room.boss && (room.boss.cornerX !== undefined || room.boss.finalStand)) || !!room.rescue;
+    this.rescue = null; this.rescueDone = false;                     // the Elder Goat's last room: the Cyclone's rescue (rescue.js)
     // boss rooms: the shockwave travels along the floor the player spawns on
     this.groundY = this.floorBelow(spawn);
     if (room.boss) {
-      const Kind = room.boss.withered ? Withered : room.boss.cyclone ? Cyclone : Boss;
+      const Kind = room.boss.cyclone ? Cyclone : Boss;
       this.boss = new Kind(this, room.boss, this.groundY);
       if (room.finale) this.addLeapPad(room.finale.leapX, this.groundY);
     }
+    this.winds = room.winds ? new Gusts(this, room.winds, this.groundY) : null;   // the Wreckage: small tornadoes with no boss behind them
+    this.bury = null;                                                             // the Wreckage's 3rd fling: rubble piled over the goat
     this.leaped = false; this.leapJeffSpawned = false; this.leapSafe = false;   // Jeff shows up (and the boss can't hurt you) once you land the mega-leap out of a boss chase
     if (room.merchant) this.spawnJeff(100);                                  // the Merchant's room: Jeff and his stall
 

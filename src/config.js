@@ -14,7 +14,8 @@ const CFG = {
 
   // jumping
   JUMP_SPEED: -130, JUMP_HBOOST: 40, VAR_JUMP_TIME: 0.2,
-  COYOTE: 0.1, JUMP_BUFFER: 0.1,
+  COYOTE: 0.1, JUMP_BUFFER: 0.1, AIR_JUMPS: 0
+, AIR_JUMP_SPEED: -120,
 
   // walls
   WALL_JUMP_CHECK: 3, WALL_JUMP_HSPEED: 130, WALL_JUMP_LOCK: 0.16, WALL_SLIDE_MAX: 30,
@@ -39,12 +40,13 @@ const CFG = {
 // goat horns: +HORNS_PER_BOSS_ROOM for every boss chase room you escape, +HORNS_BOSS_DEFEATED for beating the boss
 CFG.HORNS_PER_BOSS_ROOM = 0.25;  // 75% less than the original 1 (fractions accumulate in Save.hornFrac)
 CFG.HORNS_BOSS_DEFEATED = 1.25;  // originally 5 (that's 75% less, too)
+CFG.HORN_DROP_MULT = 3;          // every horn reward (boss rooms and per-room payouts) is tripled
 // Rampage of the Mountains: invincible + fast + huge horns for RAMPAGE_TIME, then half speed for RAMPAGE_TIRED_TIME
 CFG.RAMPAGE_TIME = 5; CFG.RAMPAGE_COOLDOWN = 120; CFG.RAMPAGE_SPEED = 1.5; CFG.RAMPAGE_HORNS = 3;
 CFG.RAMPAGE_TIRED_TIME = 2; CFG.RAMPAGE_TIRED_SPEED = 0.5;
 // Mountain Toughened Hide: press F -> shield for SHIELD_TIME; the next hit is deflected (boss attacks are reflected and stun it)
 CFG.SHIELD_CHARGES = 4; CFG.SHIELD_BOSS_COST = 2; CFG.SHIELD_TIME = 3; CFG.SHIELD_COOLDOWN = 10; CFG.SHIELD_GRACE = 1; CFG.BOSS_STUN = 2; CFG.TRIAL_TIME = 90; // trial: beat the boss chase (rooms 11-19) in 1:30 without dying
-CFG.BONES_MIN = 1; CFG.BONES_MAX = 5;   // Withered bones dropped per kill
+CFG.ELDER_HORNS_MIN = 1; CFG.ELDER_HORNS_MAX = 5;   // goat horns the elder goat drops when the icicle pierces its leg in room 75 (before HORN_DROP_MULT)
 // Odin's Blessing (Jeff): immune to powder snow, 5 hits to die (3 against boss attacks), every drop x5. Unlocked by a trial.
 CFG.ODIN_HITS = 5; CFG.ODIN_BOSS_HITS = 3; CFG.ODIN_DROPS = 5; CFG.ODIN_TRIAL_ROOM = 10; CFG.ODIN_TRIAL_TIME = 90;
 CFG.HURT_INVULN = 1.5; // seconds of invulnerability after Tough Hide absorbs a hit
@@ -62,6 +64,12 @@ CFG.TORNADO_PERIOD = 5; CFG.TORNADO_BRICK_SPEED = 70; CFG.TORNADO_STUN = 2;
 // blows you backwards the 2nd (CYCLONE_PUSH_* for CYCLONE_PUSH_LOCK s), and the 3rd flings you into the Cyclone - death.
 CFG.CYCLONE_STUN = 1.5; CFG.CYCLONE_PUSH_VX = 260; CFG.CYCLONE_PUSH_VY = -110; CFG.CYCLONE_PUSH_LOCK = 0.3;
 CFG.CYCLONE_TOUCH_IFRAME = 0.6; CFG.CYCLONE_FLING_TIME = 0.55;
+// The Wreckage (rooms 121-150): same small tornadoes with no Cyclone behind them, so the 3rd touch flings you up into the
+// ceiling for WRECK_FLING_UP s, you drop back down and the ceiling buries you in rubble for WRECK_BURY_TIME s.
+CFG.WRECK_FLING_UP = 0.4; CFG.WRECK_BURY_TIME = 1.4; CFG.WRECK_DEBRIS_GRAVITY = 600;
+// The Elder Goat's last room (165, see rescue.js): the Cyclone spins up for RESCUE_ARRIVE s, flings you across the chasm
+// over RESCUE_FLING s, blows the goat into it, then dies out over RESCUE_CALM s.
+CFG.RESCUE_ARRIVE = 0.8; CFG.RESCUE_FLING = 1.3; CFG.RESCUE_CALM = 1.5;
 
 // shop items; effects are applied in GameScene.applyUpgrades()
 const UPGRADES = [
@@ -79,8 +87,8 @@ const UPGRADES = [
 // goat shop prices are paid in coins (no horns) and are 25% cheaper than the original list above (rounded down)
 UPGRADES.forEach(u => { u.cost = Math.floor(u.cost * 0.75); });
 
-// Jeff the merchant sells armour and items for goat horns only - never coins. The VIP tier is the good stuff:
-// it also demands big piles of Withered bones on top of its horns price. See Save.buyWithHorns / GameScene.applyUpgrades.
+// Jeff the merchant sells armour and items for goat horns only - never coins. The VIP tier is the good stuff.
+// See Save.buyWithHorns / GameScene.applyUpgrades.
 const JEFF_ITEMS = [
   // armour (goat horns)
   { kind: 'armour', id: 'frostCloak', name: 'Frost Cloak', cost: 8, desc: 'Powder snow takes twice as long to freeze you.' },
@@ -93,15 +101,15 @@ const JEFF_ITEMS = [
   { kind: 'item', id: 'gripChalk', name: 'Grip Chalk', cost: 7, desc: 'You slide down walls half as fast.' },
   { kind: 'item', id: 'rampageTonic', name: 'Rampage Tonic', cost: 12, desc: 'Rampage of the Mountains recharges a third faster (80 seconds).' },
   { kind: 'item', id: 'twinDash', name: 'Twin Dash', cost: 16, desc: 'Carry two dashes at once.' },
-  // VIP items: Jeff's best gear, kept under the counter. Horns alone won't do - he wants a serious pile of Withered bones too.
-  { kind: 'vip', id: 'odin', name: "Odin's Blessing", cost: 125, bones: 275, trial: 'odin',
-    desc: 'Trial: reach room 10 in 1:30 with no deaths (start at room 1). Costs 125 goat horns, 275 Withered bones. ' +
+  // VIP items: Jeff's best gear, kept under the counter.
+  { kind: 'vip', id: 'odin', name: "Odin's Blessing", cost: 125, trial: 'odin',
+    desc: 'Trial: reach room 10 in 1:30 with no deaths (start at room 1). Costs 125 goat horns. ' +
           'Immune to powder snow. 5 hits to die, 3 against boss attacks. All drops x5.' },
-  { kind: 'vip', id: 'boneWard', name: 'Bone Ward', cost: 30, bones: 320,
-    desc: '+1 hit point on top of everything else (stacks with Iron Plate). Hazards only - the toughest hide bones can buy.' },
-  { kind: 'vip', id: 'elderRampage', name: "Elder's Rampage", cost: 45, bones: 480,
+  { kind: 'vip', id: 'boneWard', name: 'Bone Ward', cost: 30,
+    desc: '+1 hit point on top of everything else (stacks with Iron Plate). Hazards only - the toughest hide horns can buy.' },
+  { kind: 'vip', id: 'elderRampage', name: "Elder's Rampage", cost: 45,
     desc: "Requires Rampage of the Mountains to do anything. Doubles its duration (10 seconds) and halves its cooldown on top of Rampage Tonic." },
-  { kind: 'vip', id: 'gamblersCoin', name: "Gambler's Coin", cost: 55, bones: 550,
+  { kind: 'vip', id: 'gamblersCoin', name: "Gambler's Coin", cost: 55,
     desc: 'Press G to flip it (20 second cooldown). 70% chance: speed boost and invincibility for 5 seconds. ' +
           '10% chance: frozen solid for 22 seconds, and every extra life is negated for the rest of the room. ' +
           '20% chance: 50% slower and take double damage for 5 minutes.' },

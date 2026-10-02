@@ -2,13 +2,13 @@
 // Storage can be blocked (private windows etc.), so every access is wrapped and the game still works without it.
 const Save = {
   KEY: 'summit-save-v1',
-  data: { horns: 0, upgrades: {}, unlocked: 0, chaseTrialDone: false, witheredBones: 0, coins: 0, odinTrialDone: false }, // chaseTrialDone: beat the boss chase in 1:30 without dying
+  data: { horns: 0, upgrades: {}, unlocked: 0, chaseTrialDone: false, coins: 0, odinTrialDone: false }, // chaseTrialDone: beat the boss chase in 1:30 without dying
 
   load() {
     try {
       const raw = localStorage.getItem(this.KEY);
       if (raw) Object.assign(this.data, JSON.parse(raw));
-      this.data.witheredBones = Number(this.data.witheredBones) || 0;   // older saves stored true/false
+      delete this.data.witheredBones;   // older saves: Withered bones are gone, the Withered drops goat horns now
     } catch (e) { /* ignore */ }
   },
 
@@ -44,13 +44,10 @@ const Save = {
 
   addCoins(n) { this.data.coins += n; this.save(); },
 
-  // Jeff's wares are paid in goat horns (VIP items also want a big pile of Withered bones) and Odin's needs its trial passed first.
+  // Jeff's wares are paid in goat horns and Odin's needs its trial passed first.
   // returns 'ok' | 'owned' | 'needTrial' | 'poor'
   missingJeff(item) {
-    const out = [];
-    if (this.data.horns < (item.cost || 0)) out.push(`${item.cost - this.data.horns} horns`);
-    if (this.data.witheredBones < (item.bones || 0)) out.push(`${item.bones - this.data.witheredBones} Withered bones`);
-    return out;
+    return this.data.horns < (item.cost || 0) ? [`${item.cost - this.data.horns} horns`] : [];
   },
 
   buyWithHorns(item) {
@@ -58,7 +55,6 @@ const Save = {
     if (item.trial === 'odin' && !this.data.odinTrialDone) return 'needTrial';
     if (this.missingJeff(item).length) return 'poor';
     this.data.horns -= item.cost || 0;
-    this.data.witheredBones -= item.bones || 0;
     this.data.upgrades[item.id] = true;
     this.save();
     return 'ok';

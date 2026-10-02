@@ -7,13 +7,17 @@ Object.assign(GameScene.prototype, {
     this.updateFreeze(dt);
     if (p.state === 'dead') return;
     this.updateFinale();
+    const rescue = this.room.rescue;
+    if (rescue && !this.rescueDone && p.x >= rescue.triggerX) return this.startRescue();
     if (this.updateBoss(dt)) return;
     this.updateJeff();
-    const b = this.bones;
-    if (b && b.ready && !b.taken && this.overlapsPlayer(b.x - 10, b.y - 8, 20)) this.takeBones();
+    const h = this.hornDrop;
+    if (h && h.ready && !h.taken && this.overlapsPlayer(h.x - 10, h.y - 8, 20)) this.takeHornDrop();
     this.roomT += dt;
     if (this.updatePopSpikes()) return this.hurt();
     if (this.tornadoes.length) this.updateTornadoes(dt);
+    if (this.winds) this.winds.update(dt, p);
+    if (p.state === 'fling') return;                     // a small tornado just caught you for the 3rd time
     if (this.rise && this.updateRise(dt)) return this.hurt();
     if (this.spikes.some(s => this.overlapsPlayer(s.x, s.y, s.w, s.h))) return this.hurt();
     this.updateCrystals(dt);

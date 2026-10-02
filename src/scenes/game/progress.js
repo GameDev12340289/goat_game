@@ -1,4 +1,4 @@
-// GameScene: leaving rooms, the shop trials, finishing the run, and rewards (horns, Withered bones).
+// GameScene: leaving rooms, the shop trials, finishing the run, and rewards (horns).
 Object.assign(GameScene.prototype, {
   nextRoom() {
     if (this.transitioning) return;
@@ -7,7 +7,7 @@ Object.assign(GameScene.prototype, {
     const room = this.room;
     const horns = room.horns !== undefined ? room.horns
       : room.boss ? (room.finale ? CFG.HORNS_BOSS_DEFEATED : CFG.HORNS_PER_BOSS_ROOM) : 0;
-    if (horns > 0) this.awardHorns(horns);
+    if (horns > 0) this.awardHorns(horns, room.hornsExact);
     const beatFirstBoss = this.roomIndex === GameScene.CHASE_LAST;      // escaping room 19 leads through door 20: the first boss is beaten
     const cam = this.cameras.main;
     cam.fadeOut(180, ...GameScene.FADE_RGB);
@@ -47,44 +47,45 @@ Object.assign(GameScene.prototype, {
     this.cameras.main.fadeIn(300, ...GameScene.FADE_RGB);
     const m = Math.floor(this.time_ / 60), s = (this.time_ % 60).toFixed(2).padStart(5, '0');
     this.game.events.emit('complete',
-      `LEVEL COMPLETE\n${Save.data.witheredBones ? 'The Withered fell. You hold its bones.\n' : ''}You outran the elder goat ..... for now\n\nTime ${m}:${s}\nDeaths ${this.deaths}\n\nENTER  menu / shop      R  play again`);
+      `LEVEL COMPLETE\nYou outran the elder goat ..... for now\n\nTime ${m}:${s}\nDeaths ${this.deaths}\n\nENTER  menu / shop      R  play again`);
   },
 
-  // Odin's Blessing: every drop (coins, horns, Withered bones) is x5
+  // Odin's Blessing: every drop (coins, horns) is x5
   dropMult() { return Save.has('odin') ? CFG.ODIN_DROPS : 1; },
 
-  // boss rooms pay fractions of a horn (Save keeps the remainder), so most escapes just add to a shard
-  awardHorns(n) {
+  // boss rooms pay fractions of a horn (Save keeps the remainder), so most escapes just add to a shard.
+  // exact: skip HORN_DROP_MULT (Odin's x5 still applies). Returns how many whole horns were banked.
+  awardHorns(n, exact = false) {
     const before = Save.data.horns;
-    Save.addHorns(n * this.dropMult());
+    Save.addHorns(n * (exact ? 1 : CFG.HORN_DROP_MULT) * this.dropMult());
     const got = Save.data.horns - before;
     this.hornsEarned += got;
     this.toast(got > 0 ? `+${GameScene.plural(got, 'goat horn')}!` : 'a goat horn shard...');
+    return got;
   },
 
-  // the Withered dies: its bones arc through the air and land just in front of the player
-  dropBones(x, y) {
+  // room 75: the icicle pierces the elder goat's leg and a goat horn arcs through the air, landing just in front of the player
+  dropHorns(x, y) {
     const p = this.player, ground = this.boss.groundY;
     const landX = Phaser.Math.Clamp(p.centerX - 6, Math.min(x + 24, CFG.W - 16), CFG.W - 16);
-    const img = this.add.image(x, y, 'bones').setOrigin(0.5, 1).setDepth(11);
+    const img = this.add.image(x, y, 'horn').setOrigin(0.5, 1).setDepth(11).setScale(1.5);
     this.roomObjs.push(img);
-    this.bones = { img, x: landX, y: ground, ready: false, taken: false };
+    this.hornDrop = { img, x: landX, y: ground, ready: false, taken: false };
     this.tweens.add({ targets: img, x: landX, duration: 800, ease: 'Sine.out' });
     this.tweens.chain({ targets: img, tweens: [
       { y: y - 40, duration: 300, ease: 'Sine.out' },
       { y: ground, duration: 500, ease: 'Bounce.out' },
     ] });
-    this.time.delayedCall(850, () => { if (this.bones) this.bones.ready = true; });
+    this.time.delayedCall(850, () => { if (this.hornDrop) this.hornDrop.ready = true; });
     this.tweens.add({ targets: img, alpha: 0.55, yoyo: true, repeat: -1, duration: 500, delay: 900 });   // a faint glow so it's easy to spot
   },
 
-  takeBones() {
-    const b = this.bones;
-    b.taken = true; b.img.destroy();
-    const n = Phaser.Math.Between(CFG.BONES_MIN, CFG.BONES_MAX) * this.dropMult();       // the Withered drops 1-5 bones
-    Save.data.witheredBones += n; Save.save();
+  takeHornDrop() {
+    const h = this.hornDrop;
+    h.taken = true; h.img.destroy();
+    const got = this.awardHorns(Phaser.Math.Between(CFG.ELDER_HORNS_MIN, CFG.ELDER_HORNS_MAX));   // 1-5, then x3 (and Odin's x5)
     this.exitLocked = false;
-    this.burst(b.x, b.y - 4, 0xe9e6d2, 16, 90);
-    this.showTitle(`You got ${GameScene.plural(n, 'Withered bone')}!`);
+    this.burst(h.x, h.y - 4, 0xffd23f, 16, 90);
+    this.showTitle(`The elder goat dropped ${GameScene.plural(got, 'goat horn')}!`);
   },
 });

@@ -4,7 +4,7 @@
 //   abilities.js Rampage, shield, Gambler's Coin   damage.js    hurting, deflecting and dying
 //   storm.js     Stormlands bricks, Cyclone wind   progress.js  room transitions, trials and rewards
 //   jeff.js      Jeff the merchant                 effects.js   particles and ghosts
-//   hud.js       HUD text and UIScene messages
+//   hud.js       HUD text and UIScene messages   rescue.js    the Cyclone's rescue in the Elder Goat's last room
 class GameScene extends Phaser.Scene {
   // the boss chase (rooms 11-19) spans these room indexes; the Mountain Toughened Hide trial runs across it
   static CHASE_FIRST = 10;
@@ -37,24 +37,10 @@ class GameScene extends Phaser.Scene {
     this.keys = {
       left: add([K.LEFT, K.A]), right: add([K.RIGHT, K.D]),
       up: add([K.UP, K.W]), down: add([K.DOWN, K.S]),
-      jump: add([K.C, K.SPACE, K.K]), dash: [this.rightShiftKey()], grab: add([K.W, K.L]),
+      jump: add([K.C, K.SPACE, K.K]), dash: add([K.SHIFT]), grab: add([K.W, K.L]),
       rampage: add([K.Q, K.E]), deflect: add([K.F]), gamble: add([K.G]), talk: add([K.V]),
       restart: add([K.R]), menu: add([K.ESC]), enter: add([K.ENTER]), quit: add([K.M]),
     };
-  }
-
-  // Duck-typed Key stand-in (isDown / _justDown) that only responds to the
-  // physical right Shift, since Phaser's SHIFT keycode matches either side.
-  rightShiftKey() {
-    const key = { isDown: false, _justDown: false };
-    const isRight = e => e.code === 'ShiftRight' || e.location === 2;
-    this.input.keyboard.on('keydown-SHIFT', e => {
-      if (!isRight(e)) return;
-      if (!key.isDown) key._justDown = true;
-      key.isDown = true;
-    });
-    this.input.keyboard.on('keyup-SHIFT', e => { if (isRight(e)) key.isDown = false; });
-    return key;
   }
 
   pressed(keys) { return keys.some(k => Phaser.Input.Keyboard.JustDown(k)); }
@@ -179,6 +165,7 @@ class GameScene extends Phaser.Scene {
       return;
     }
     if (this.fling) return this.updateFling(dt);
+    if (this.rescue) return this.updateRescue(dt);
 
     let inp = this.readInput();
     this.time_ += dt;

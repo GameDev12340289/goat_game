@@ -25,6 +25,7 @@ class Player {
     this.invuln = 0; this.groundT = 0; this.safe = { x, y }; this.inPowder = false;
     this.coyote = 0; this.jumpBuf = 0; this.dashBuf = 0; this.dashCd = 0;
     this.varJump = 0; this.varJumpSpeed = 0;
+    this.airJumps=CFG.AIR_JUMPS;
     this.wallJumpLock = 0; this.wallJumpDir = 0;
     this.dashTimer = 0; this.dashDir = { x: 1, y: 0 }; this.ghostT = 0;
     this.body.setVisible(true); this.hair.setVisible(true);
@@ -100,6 +101,7 @@ class Player {
     this.remX = 0; this.remY = 0; this.vx = 0; this.vy = 0;
     this.state = 'normal'; this.dashes = this.maxDashes; this.stamina = this.maxStamina;
     this.varJump = 0; this.wallJumpLock = 0; this.dashTimer = 0;
+    this.airJumps=CFG.AIR_JUMPS;
     this.sync();
   }
 
@@ -108,6 +110,7 @@ class Player {
     // wading through powder snow: you can always kick off the "floor" again, which lets you swim upward by mashing jump
     if (this.inPowder) this.coyote = CFG.COYOTE;
     if (onGround) {
+      this.airJumps=CFG.AIR_JUMPS;
       this.coyote = CFG.COYOTE;
       this.stamina = this.maxStamina;
       if (this.dashes < this.maxDashes && this.dashCd <= 0) this.dashes = this.maxDashes;
@@ -158,6 +161,7 @@ class Player {
     if (this.jumpBuf > 0) {
       if (this.coyote > 0) this.jump(inp);
       else if (wallJumpDir !== 0) this.wallJump(-wallJumpDir, grab, inp);
+      else if (this.airJumps > 0 && !grab) this.airJump(inp);
     }
 
     this.moveX(this.vx * dt);
@@ -226,6 +230,20 @@ class Player {
     this.remY = 0;
   }
 
+airJump(inp) {
+this.airJumps-=1;
+    this.jumpBuf = 0; this.coyote = 0;
+    if (this.inPowder) {                       // a weak kick off the snow, no running boost, no variable jump
+      this.vy = CFG.POWDER_JUMP; this.remY = 0;
+      return;
+    }
+    this.vx += CFG.JUMP_HBOOST * inp.x;
+    this.vy = CFG.JUMP_SPEED;
+    this.varJump = CFG.VAR_JUMP_TIME; this.varJumpSpeed = this.vy;
+    this.remY = 0;
+  }
+
+  
   wallJump(dir, grabbing, inp) {
     this.jumpBuf = 0; this.coyote = 0;
     if (grabbing && inp.x === 0 && this.stamina > CFG.CLIMB_JUMP_COST) {

@@ -3,7 +3,7 @@
 // Room config (levels.js -> boss, with withered: true): { speed px/s, startX, firstDelay, spikeEvery, warn, desperateAfter }
 // desperateAfter (final room only): after that many seconds it stops and calls a wall of tall spikes across the whole floor.
 // Nothing but a Tough Hide survives it: with one the spikes are reflected straight up into the ceiling, bringing it down
-// in a fall of debris that buries the Withered, and it drops its bones.
+// in a fall of debris that buries the Withered, and it drops goat horns.
 class Withered {
   constructor(scene, cfg, groundY) {
     this.scene = scene;
@@ -230,7 +230,7 @@ class Withered {
     this.state = 'dead'; this.dead = true; this.sprite.clearTint();
     this.scene.tweens.add({ targets: this.sprite, alpha: 0, duration: 900 });
     this.reflects.forEach(r => this.scene.tweens.add({ targets: r.sprite, alpha: 0, duration: 700 }));
-    this.scene.dropBones(this.x, CFG.H - 60);
+    this.scene.dropHorns(this.x, CFG.H - 60);
     this.scene.spawnJeff(Math.min(this.x + 100, CFG.W - 30), { stall: false });   // Jeff shows up now that the Withered is buried
   }
 

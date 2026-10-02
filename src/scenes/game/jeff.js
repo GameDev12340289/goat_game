@@ -1,4 +1,4 @@
-// GameScene: Jeff the merchant. He takes goat horns (and Withered bones for the VIP tier), runs the stall in the
+// GameScene: Jeff the merchant. He takes goat horns only, runs the stall in the
 // Merchant's room and pops up after a boss-chase finale. V talks to him, which opens JeffScene.
 Object.assign(GameScene.prototype, {
   // stall: false for his surprise mid-run cameos - he hasn't had time to set up shop, he's just there
@@ -33,7 +33,7 @@ Object.assign(GameScene.prototype, {
     const j = this.jeff;
     if (!j) return;
     const near = Math.abs(this.player.centerX - j.x) < 40;
-    if (near && !j.near) this.toast('Jeff: horns and bones. Press V to trade');
+    if (near && !j.near) this.toast('Jeff: horns only. Press V to trade');
     j.near = near;
     if (near && this.pressed(this.keys.talk)) this.openJeff();
   },

@@ -29,27 +29,6 @@ class BootScene extends Phaser.Scene {
       g.fillRect(5, 2, 2, 1); g.fillRect(4, 1, 2, 1); g.fillRect(2, 0, 3, 1); g.fillRect(2, 1, 1, 1);
     });
 
-    // The Withered: a tall, eyeless human with charcoal black skin and a dim ember of a heart in the chest (drawn 14x56, shown 2x).
-    // Its 22 long arms are drawn live by Withered.js, so only the raised pair for the desperate move is part of the texture.
-    const withered = raised => g => {
-      const skin = 0x1b1b21, rib = 0x2d2d36, cloth = 0x101015;
-      g.fillStyle(skin);
-      g.fillRect(5, 1, 5, 7);                                   // head
-      g.fillRect(6, 8, 3, 2);                                   // neck
-      g.fillRect(3, 10, 9, 18);                                 // torso
-      g.fillRect(4, 28, 3, 26); g.fillRect(8, 28, 3, 26);       // legs
-      g.fillRect(3, 54, 4, 2); g.fillRect(8, 54, 4, 2);         // feet
-      if (raised) {
-        g.fillRect(0, 0, 2, 11); g.fillRect(13, 0, 2, 11); g.fillRect(1, 10, 3, 2); g.fillRect(11, 10, 3, 2);
-      }
-      g.fillStyle(rib);
-      g.fillRect(4, 13, 7, 1); g.fillRect(4, 17, 7, 1); g.fillRect(4, 21, 7, 1); g.fillRect(6, 10, 1, 3);
-      g.fillStyle(cloth); g.fillRect(3, 27, 9, 5);              // tattered rags
-      g.fillStyle(0x7a1c1c); g.fillRect(8, 14, 2, 2);           // the heart
-    };
-    tex('withered', 16, 56, withered(false));
-    tex('witheredRaised', 16, 56, withered(true));
-
     // Jeff the merchant: a floating, mustachioed trader in a black hoodie (14x20)
     tex('jeff', 14, 20, g => {
       g.fillStyle(0x1c1c22);
@@ -65,14 +44,6 @@ class BootScene extends Phaser.Scene {
       g.fillStyle(0x8a5a30); g.fillRect(9, 12, 4, 4);                               // satchel
       g.fillStyle(0xffd23f); g.fillRect(10, 13, 2, 2);                              // a coin peeking out
       g.fillStyle(0x2a2a35); g.fillRect(3, 18, 3, 2); g.fillRect(8, 18, 3, 2);      // boots
-    });
-
-    // the Withered bones: a skull over a crossed pair of bones
-    tex('bones', 12, 8, g => {
-      g.fillStyle(0xe9e6d2);
-      g.fillRect(1, 5, 10, 2); g.fillRect(0, 4, 2, 2); g.fillRect(0, 6, 2, 2); g.fillRect(10, 4, 2, 2); g.fillRect(10, 6, 2, 2);
-      g.fillRect(4, 0, 4, 4);
-      g.fillStyle(0x2a2a30); g.fillRect(5, 1, 1, 1); g.fillRect(7, 1, 1, 1);
     });
 
     // floor spike that shoots up as a floor-to-ceiling pillar, then retracts
@@ -116,7 +87,8 @@ class BootScene extends Phaser.Scene {
     });
 
     // giant boss goat (facing right, 48x48, shown at 2x). Second frame has the mouth open to scream.
-    const drawBoss = (g, open) => {
+    // icy (rooms 66-75): frost-caked horns with icicles hanging all over them
+    const drawBoss = (g, open, icy = false) => {
       g.fillStyle(0xe8e2d4); g.fillRect(4, 18, 28, 18);                   // body
       g.fillStyle(0xc9c0ac); g.fillRect(4, 30, 28, 6); g.fillRect(8, 20, 4, 3); g.fillRect(18, 22, 5, 3);
       g.fillRect(0, 18, 5, 4);                                             // tail
@@ -128,6 +100,15 @@ class BootScene extends Phaser.Scene {
       g.fillStyle(0x8c7a56);
       g.fillTriangle(32, 11, 22, 1, 37, 11); g.fillTriangle(38, 11, 35, 0, 44, 11);   // horns
       g.fillStyle(0xb8a880); g.fillTriangle(22, 1, 25, 1, 27, 6);
+      if (icy) {
+        g.fillStyle(0xbfeaff);                                             // frost caking the horns
+        g.fillTriangle(22, 1, 27, 3, 26, 5); g.fillTriangle(35, 0, 38, 4, 36, 5);
+        g.fillStyle(0xe8fbff);
+        for (const [x, y, len] of [[23, 3, 5], [25, 5, 7], [27, 7, 6], [29, 9, 5], [42, 7, 4], [44, 9, 3]])
+          g.fillTriangle(x, y, x + 2, y, x + 1, y + len);                  // icicles hanging off the horns
+        g.fillStyle(0x9fd8ff);
+        for (const [x, y] of [[24, 0], [28, 3], [36, 1], [40, 3]]) g.fillTriangle(x, y + 2, x + 2, y + 2, x + 1, y - 2);   // spikes of ice sticking up
+      }
       g.fillStyle(0xb0a48c); g.fillRect(31, 14, 3, 2);                     // ear
       g.fillStyle(0xff2a2a); g.fillRect(38, 14, 3, 2);                     // eye
       g.fillStyle(0xffb0b0); g.fillRect(39, 14, 1, 1);
@@ -146,6 +127,13 @@ class BootScene extends Phaser.Scene {
     };
     tex('boss', 48, 48, g => drawBoss(g, false));
     tex('bossScream', 48, 48, g => drawBoss(g, true));
+    tex('bossIcy', 48, 48, g => drawBoss(g, false, true));
+    tex('bossIcyScream', 48, 48, g => drawBoss(g, true, true));
+    // the icicle the icy elder goat launches off its horns (pointing right; rotated to its flight path)
+    tex('icicle', 12, 4, g => {
+      g.fillStyle(0x9fd8ff); g.fillTriangle(0, 0, 0, 4, 12, 2);
+      g.fillStyle(0xe8fbff); g.fillTriangle(0, 1, 0, 2, 9, 2);
+    });
 
     // goat horn: the shop currency
     tex('horn', 8, 8, g => {

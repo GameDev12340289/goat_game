@@ -5,6 +5,7 @@
 //   W  powder snow (see the Frostbite rooms below)
 //   a / b  popping spikes (groups a and b take turns sticking out of the floor)
 //   T  Stormlands tornado (stands still, hurls a brick at you every 5s - see GameScene.addTornado/updateTornadoes)
+// winds: {...} (optional) -> small tornadoes keep whirling up ahead of you (the Wreckage, see Gusts.js).
 // rise: { speed, delay } (optional) -> a spike floor rises from the bottom of the room.
 // boss: {...} (optional) -> giant goat chase, see Boss.js.  finale: { leapX, vx, vy } -> mega-leap pad at leapX.
 // Solid walls are implied on every side that isn't an exit.
@@ -608,7 +609,7 @@ const CLIMB_LADDER = drifts => B(g => {               // the Rising Powder layou
   for (const [r, c0, c1] of drifts) g.fill(r, r, c0, c1, 'W');
 });
 
-const WITHERED = (n, name, boss, rows) => ({ name: `${n} - ${name}`, exit: 'right', boss: { withered: true, ...boss }, rows });
+const ICY = (n, name, boss, rows) => ({ name: `${n} - The Frozen Elder: ${name}`, exit: 'right', boss: { icy: true, ...boss }, rows });
 const CYCLONE = (n, name, boss, rows) => ({ name: `${n} - The Cyclone: ${name}`, exit: 'right', boss: { cyclone: true, ...boss }, rows });
 
 LEVELS.push(
@@ -660,33 +661,32 @@ LEVELS.push(
     rows: RUN([['f', 2], ['pop', 1], ['f', 2], ['big', 8, 'W'], ['f', 2], ['tun', 4], ['f', 2], ['pit', 5], ['f', 2]]) },
   { name: '65 - The Long Winter: Frozen Wall III', exit: 'top', rise: { speed: 6, delay: 2 }, rows: CLIMB_WALL({ curtain: true, drift: true }) },
 
-  // ---- THE WITHERED (rooms 66-75): a tall charcoal figure chases you and calls spikes up from the floor ------------
-  // boss: { withered: true, speed px/s, startX, firstDelay, spikeEvery, desperateAfter (final room) }, see Withered.js
-  WITHERED(66, 'The Withered: It Wakes', { speed: 30, startX: -70, firstDelay: 3, spikeEvery: 5 },
+  // ---- THE FROZEN ELDER (rooms 66-75): the elder goat is back with icicles all over its horns. Besides its usual spikes
+  // it launches icicles straight at you (icicleEvery - the horns glint first), see Boss.js.
+  // boss: { icy: true, speed, startX, firstDelay, spikeEvery, icicleEvery, cornerX (final room) }
+  ICY(66, 'It Wakes', { speed: 19, startX: -90, firstDelay: 3, icicleEvery: 5 },
     RUN([['f', 2], ['pit', 4], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 4]])),
-  WITHERED(67, 'The Withered: Ash Steps', { speed: 32, startX: -68, firstDelay: 3, spikeEvery: 4.6 },
+  ICY(67, 'Frost Steps', { speed: 20, startX: -88, firstDelay: 3, icicleEvery: 4.6, spikeEvery: 6 },
     RUN([['f', 2], ['hur', 2], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['drift', 3], ['f', 2], ['pit', 4, 'W'], ['f', 2], ['hur', 2], ['f', 3]])),
-  WITHERED(68, 'The Withered: Charred Chasm', { speed: 34, startX: -64, firstDelay: 2.5, spikeEvery: 4.2 },
+  ICY(68, 'Glacier Chasm', { speed: 21, startX: -86, firstDelay: 2.5, icicleEvery: 4.4, spikeEvery: 5.5 },
     RUN([['f', 2], ['big', 8], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 2], ['big', 8], ['f', 2]])),
-  WITHERED(69, 'The Withered: Thin Air', { speed: 36, startX: -60, firstDelay: 2.5, spikeEvery: 4 },
+  ICY(69, 'Thin Air', { speed: 22, startX: -84, firstDelay: 2.5, icicleEvery: 4.2, spikeEvery: 5 },
     RUN([['f', 2], ['pit', 5], ['f', 2], ['pop', 1], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['drift', 3], ['f', 2]])),
-  WITHERED(70, 'The Withered: Soot and Snow', { speed: 38, startX: -56, firstDelay: 2.5, spikeEvery: 3.6 },
+  ICY(70, 'Hail of Ice', { speed: 23, startX: -82, firstDelay: 2.5, icicleEvery: 3.8, spikeEvery: 5 },
     RUN([['f', 2], ['drift', 4], ['f', 2], ['pit', 6], ['f', 2], ['hur', 2], ['f', 2], ['big', 8], ['f', 2], ['hur', 2], ['f', 2]])),
-  WITHERED(71, 'The Withered: Reaching Hands', { speed: 40, startX: -54, firstDelay: 2, spikeEvery: 3.4 },
+  ICY(71, 'Frozen Horns', { speed: 24, startX: -80, firstDelay: 2, icicleEvery: 3.6, spikeEvery: 4.6 },
     RUN([['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2]])),
-  WITHERED(72, 'The Withered: Hollow Run', { speed: 42, startX: -50, firstDelay: 2, spikeEvery: 3.2 },
+  ICY(72, 'Hollow Run', { speed: 25, startX: -78, firstDelay: 2, icicleEvery: 3.4, spikeEvery: 4.4, ceiling: true },
     RUN([['f', 2], ['big', 9], ['f', 2], ['pop', 1], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['drift', 3], ['f', 2], ['hur', 2], ['f', 2]])),
-  WITHERED(73, 'The Withered: The Long Shadow', { speed: 44, startX: -48, firstDelay: 2, spikeEvery: 3 },
+  ICY(73, 'The Long Shadow', { speed: 26, startX: -76, firstDelay: 2, icicleEvery: 3.2, spikeEvery: 4.2, ceiling: true },
     RUN([['f', 2], ['hur', 2], ['f', 2], ['pit', 6], ['f', 2], ['hur', 2], ['f', 2], ['big', 8, 'W'], ['f', 2], ['pit', 5], ['f', 2]])),
-  WITHERED(74, 'The Withered: Last Breath', { speed: 46, startX: -46, firstDelay: 2, spikeEvery: 2.8 },
+  ICY(74, 'Last Breath', { speed: 27, startX: -74, firstDelay: 2, icicleEvery: 3, spikeEvery: 4, ceiling: true },
     RUN([['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['big', 8], ['f', 2], ['hur', 2]])),
-  // the last room: flat floor, and the exit is sealed. After a few seconds the Withered stops and calls tall spikes across
-  // the whole floor. Only a Tough Hide survives: the spikes are reflected into the ceiling, bringing it down in debris
-  // that buries the Withered, and it drops its bones.
-  WITHERED(75, 'The Withered: Desperate Measures',
-    { speed: 38, startX: -50, firstDelay: 2, spikeEvery: 3, desperateAfter: 4.5 },
+  // the last room: flat floor, and the exit is sealed. The goat drives you into the right-hand corner (its snout stops at
+  // cornerX) and hurls one huge homing icicle. Without a Tough Hide it kills you; with one it glances off, pierces the
+  // goat's leg and the goat runs away - dropping goat horns. The exit opens once you pick them up.
+  ICY(75, 'Cornered', { speed: 24, startX: -80, firstDelay: 2, icicleEvery: 3.5, cornerX: 236 },
     RUN([['f', 34]], g => { g.put(17, 26, 'S'); })),
-
   // ---- THE STORMLANDS (rooms 76-100): no bosses, just wind and wreckage - and in the last 10, tornadoes ('T') that
   // hurl bricks at you every 5 seconds (GameScene.updateTornadoes). The first brick to ever clip you in a room just
   // stuns you for 2 seconds; every one after costs a life, same as any other hazard. ---------------------------------
@@ -755,7 +755,7 @@ LEVELS.push(
   // ---- THE CYCLONE (rooms 101-120): a giant tornado chases you, dropping a small tornado just ahead of you every 2-5
   // seconds (and, from room 106, dust devils that race along the floor). Small tornado touches: stun, then knockback,
   // then it flings you into the Cyclone. Room 120: the gale pins you in the corner - then the wind stops, the Cyclone
-  // dies out and Jeff sets up shop (V to trade); the exit is the end of the game. See Cyclone.js.
+  // dies out and Jeff sets up shop (V to trade); the exit leads on into the Wreckage. See Cyclone.js.
   CYCLONE(101, 'First Winds', { speed: 26, startX: -100, firstDelay: 3 },
     RUN([['f', 4], ['pit', 4], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5], ['f', 6]])),
   CYCLONE(102, 'Funnel Chase', { speed: 27, startX: -98 },
@@ -800,6 +800,126 @@ LEVELS.push(
     RUN([['f', 34]], g => { g.put(17, 22, 'S'); g.put(17, 30, 'S'); })),
 );
 
-// goat horns: rooms 11-19 keep their old rewards; of the later rooms only 20, 40 and 120 (the Cyclone) pay out (1 horn each)
-LEVELS.forEach((lv, i) => { if (i >= 19) lv.horns = (i === 19 || i === 39 || i === 119) ? 1 : 0; });
+// ---- THE WRECKAGE (rooms 121-150): what the Cyclone left behind. No boss, but small tornadoes still whirl up ahead of
+// you (winds: see Gusts.js) - and from room 126, dust devils roll in from the left - while Stormlands tornadoes ('T')
+// hurl bricks. Small tornado touches: stun, then knockback, then you're flung into the ceiling and buried in rubble.
+// withT(rows, [[row, col], ...]) drops brick-throwing tornadoes into a prebuilt layout (the climbs).
+const withT = (rows, spots) => rows.map((s, r) => spots.reduce((line, [tr, c]) => tr === r ? line.slice(0, c) + 'T' + line.slice(c + 1) : line, s));
+const WRECK = (n, name, winds, rows, extra = {}) => ({ name: `${n} - The Wreckage: ${name}`, exit: 'right', winds, rows, ...extra });
+const tAt = (...cols) => g => cols.forEach(c => g.put(17, c, 'T'));
+
+LEVELS.push(
+  WRECK(121, 'Aftermath', { every: [4, 6], firstDelay: 3 },
+    RUN([['f', 4], ['pit', 4], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5], ['f', 6]])),
+  WRECK(122, 'Loose Shingles', { every: [3.5, 5.5] },
+    RUN([['f', 3], ['hur', 2], ['f', 4], ['pit', 5], ['f', 4], ['hur', 2], ['f', 4], ['pit', 4], ['f', 4]])),
+  WRECK(123, 'Thrown Bricks', { every: [3.5, 5.5] },
+    RUN([['f', 4], ['pit', 5], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5], ['f', 5]], tAt(16))),
+  WRECK(124, 'Fallen Rafters', { every: [3.5, 5] },
+    RUN([['f', 3], ['big', 8], ['f', 4], ['pit', 5], ['f', 4], ['hur', 2], ['f', 5]], tAt(30))),
+  WRECK(125, 'Splintered Wall', { every: [3.5, 5] },
+    withT(CLIMB_WALL(), [[15, 13], [21, 30]]), { exit: 'top' }),
+  WRECK(126, 'Dust Devils Return', { every: [3.5, 5], runnerEvery: 7 },
+    RUN([['f', 4], ['pit', 4], ['f', 5], ['pit', 5], ['f', 5], ['hur', 2], ['f', 5]], tAt(20))),
+  WRECK(127, 'Rubble Steps', { every: [3.5, 5], runnerEvery: 6.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 4], ['f', 3]], tAt(12))),
+  WRECK(128, 'Broken Bridge', { every: [3.2, 5], runnerEvery: 6.5 },
+    RUN([['f', 3], ['big', 9], ['f', 4], ['big', 9], ['f', 4], ['hur', 2], ['f', 3]], tAt(8, 30))),
+  WRECK(129, 'Debris Drift', { every: [3, 4.5], runnerEvery: 6 },
+    RUN([['f', 3], ['pit', 5, 'W'], ['f', 3], ['drift', 4], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3]], tAt(14))),
+  WRECK(130, 'Collapsed Tower', { every: [3, 5] },
+    withT(CLIMB_POP(), [[17, 13], [20, 30]]), { exit: 'top', rise: { speed: 6, delay: 3 } }),
+  WRECK(131, 'Two Throwers', { every: [3, 4.5], runnerEvery: 6 },
+    RUN([['f', 3], ['pit', 5], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3]], tAt(10, 26))),
+  WRECK(132, 'Scattered Roof', { every: [3, 4.5], runnerEvery: 5.5 },
+    RUN([['f', 3], ['pop', 1], ['f', 3], ['pit', 5], ['f', 3], ['pop', 1], ['f', 3], ['pit', 5, 'W'], ['f', 3]], tAt(14))),
+  WRECK(133, 'Hollow House', { every: [3, 4.5], runnerEvery: 5.5 },
+    RUN([['f', 2], ['tun', 5], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3]], tAt(28))),
+  WRECK(134, 'Splinter Run', { every: [3, 4.5], runnerEvery: 5 },
+    RUN([['f', 3], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 3]], tAt(9, 24))),
+  WRECK(135, 'Wind Ladder', { every: [3, 5] },
+    withT(CLIMB_LADDER([[16, 19, 22], [10, 17, 20]]), [[12, 28], [21, 35]]), { exit: 'top', rise: { speed: 8, delay: 2.5 } }),
+  WRECK(136, 'Shattered Glass', { every: [2.8, 4.5], runnerEvery: 5 },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['pit', 5], ['f', 3], ['big', 8, 'W'], ['f', 3]], tAt(6, 30))),
+  WRECK(137, 'Whirling Wreck', { every: [2.8, 4.2], runnerEvery: 5 },
+    RUN([['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['pop', 1], ['f', 3]], tAt(18))),
+  WRECK(138, 'Brick Storm', { every: [3, 4.5], runnerEvery: 6 },
+    RUN([['f', 5], ['pit', 5], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5, 'W'], ['f', 5]], tAt(8, 20, 32))),
+  WRECK(139, 'Torn Floorboards', { every: [2.8, 4.2], runnerEvery: 4.5 },
+    RUN([['f', 2], ['pit', 5], ['f', 2], ['pit', 5], ['f', 2], ['pit', 5], ['f', 2], ['drift', 3], ['f', 3]], tAt(22))),
+  WRECK(140, 'Rubble Wall', { every: [3, 4.5] },
+    withT(CLIMB_POP(), [[17, 13], [20, 30]]), { exit: 'top', rise: { speed: 7, delay: 2 } }),
+  WRECK(141, 'Gale Gauntlet', { every: [2.6, 4], runnerEvery: 4.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['big', 8], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3]], tAt(10, 34))),
+  WRECK(142, 'The Leaning House', { every: [2.6, 4], runnerEvery: 4.5 },
+    RUN([['f', 2], ['tun', 5], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['tun', 5], ['f', 2], ['pit', 5], ['f', 2], ['pop', 1]], tAt(25))),
+  WRECK(143, 'Flying Timber', { every: [2.5, 4], runnerEvery: 4 },
+    RUN([['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['big', 8], ['f', 3], ['hur', 2], ['f', 3]], tAt(12, 28))),
+  WRECK(144, 'Ruined Mill', { every: [2.5, 4], runnerEvery: 4 },
+    RUN([['f', 3], ['pop', 1], ['f', 3], ['big', 9], ['f', 3], ['pit', 5, 'W'], ['f', 3]], tAt(8, 22, 36))),
+  WRECK(145, 'The Long Climb Out', { every: [2.6, 4] },
+    withT(CLIMB_WALL({ drift: true }), [[15, 13], [21, 30]]), { exit: 'top', rise: { speed: 9, delay: 2 } }),
+  WRECK(146, "Wreckers' Row", { every: [2.4, 3.8], runnerEvery: 4 },
+    RUN([['f', 2], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 2], ['pit', 4], ['f', 2]], tAt(10, 24, 36))),
+  WRECK(147, 'Bricks and Breeze', { every: [2.4, 3.6], runnerEvery: 3.8 },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['big', 8, 'W'], ['f', 3], ['hur', 2], ['f', 3]], tAt(6, 18, 30))),
+  WRECK(148, 'Storm Debris', { every: [2.2, 3.5], runnerEvery: 3.5 },
+    RUN([['f', 2], ['pit', 5], ['f', 2], ['pop', 1], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['big', 8], ['f', 2]], tAt(9, 20, 34))),
+  WRECK(149, 'The Last Ruin', { every: [2.2, 3.4], runnerEvery: 3.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3], ['big', 8], ['f', 3], ['hur', 2], ['f', 3], ['pit', 4]], tAt(8, 18, 28, 38))),
+  // the last room: a flat floor, five brick throwers and the wind at its worst. The exit is the end of the game.
+  WRECK(150, 'Final Gust', { every: [2, 3], runnerEvery: 3 },
+    RUN([['f', 34]], g => { tAt(6, 14, 22, 30, 37)(g); g.put(14, 18, 'S'); g.put(14, 26, 'S'); })),
+);
+
+// ---- THE ELDER GOAT (rooms 151-165): the giant goat is back, and now it dashes - it flashes red for a second, then
+// lunges forward (boss.dashEvery, see Boss.js). Keep your distance. Room 165: the floor ends at a chasm too wide to jump;
+// near the edge the Cyclone returns, flings you across and blows the goat into the chasm (rescue: see rescue.js).
+const ELDER = (n, name, boss, rows, extra = {}) => ({ name: `${n} - The Elder Goat: ${name}`, exit: 'right', boss, rows, ...extra });
+
+LEVELS.push(
+  ELDER(151, 'Return of the Elder', { speed: 22, startX: -100, firstDelay: 3, dashEvery: 6 },
+    RUN([['f', 4], ['pit', 4], ['f', 5], ['hur', 2], ['f', 5], ['pit', 5], ['f', 6]])),
+  ELDER(152, 'Red Warning', { speed: 23, startX: -98, firstDelay: 3, dashEvery: 5.5 },
+    RUN([['f', 3], ['hur', 2], ['f', 4], ['pit', 5], ['f', 4], ['hur', 2], ['f', 4], ['pit', 4], ['f', 4]])),
+  ELDER(153, 'Charging Horns', { speed: 24, startX: -96, firstDelay: 3, dashEvery: 5.5, spikeEvery: 5 },
+    RUN([['f', 3], ['big', 8], ['f', 4], ['pit', 5], ['f', 4], ['hur', 2], ['f', 5]])),
+  ELDER(154, 'Stampede', { speed: 25, startX: -94, firstDelay: 3, dashEvery: 5, screamEvery: 7 },
+    RUN([['f', 3], ['pit', 5, 'W'], ['f', 4], ['hur', 2], ['f', 4], ['pit', 5], ['f', 4], ['drift', 3], ['f', 3]])),
+  ELDER(155, 'Lunging Shadow', { speed: 26, startX: -92, firstDelay: 2.5, dashEvery: 5, spikeEvery: 4.5 },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['big', 8], ['f', 4], ['hur', 2], ['f', 3]])),
+  ELDER(156, 'Old Grudge', { speed: 27, startX: -90, firstDelay: 2.5, dashEvery: 4.8, screamEvery: 6.5 },
+    RUN([['f', 4], ['pit', 4], ['f', 5], ['pit', 5], ['f', 5], ['hur', 2], ['f', 5]])),
+  ELDER(157, 'Hoofbeats', { speed: 28, startX: -88, firstDelay: 2.5, dashEvery: 4.6, spikeEvery: 4.2, ceiling: true },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 4], ['f', 3]])),
+  ELDER(158, 'Rage of Ages', { speed: 28, startX: -86, firstDelay: 2.5, dashEvery: 4.4, spikeEvery: 4.5, screamEvery: 6.5 },
+    RUN([['f', 3], ['pit', 5, 'W'], ['f', 3], ['big', 8], ['f', 3], ['pit', 5], ['f', 4]])),
+  ELDER(159, 'Headlong', { speed: 29, startX: -84, firstDelay: 2.5, dashEvery: 4.2, spikeEvery: 4 },
+    RUN([['f', 3], ['pop', 1], ['f', 3], ['pit', 5], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5], ['f', 3]])),
+  ELDER(160, 'The Long Charge', { speed: 30, startX: -82, firstDelay: 2, dashEvery: 4.2, screamEvery: 6, ceiling: true, spikeEvery: 4.2 },
+    RUN([['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 3], ['big', 8], ['f', 3]])),
+  ELDER(161, 'Bloodred Eyes', { speed: 31, startX: -80, firstDelay: 2, dashEvery: 4, spikeEvery: 3.8, screamEvery: 6 },
+    RUN([['f', 3], ['pit', 5], ['f', 3], ['pit', 5], ['f', 3], ['pit', 5], ['f', 3], ['drift', 3], ['f', 3]])),
+  ELDER(162, 'Thundering Hooves', { speed: 32, startX: -78, firstDelay: 2, dashEvery: 3.8, spikeEvery: 3.6, ceiling: true },
+    RUN([['f', 3], ['big', 8], ['f', 3], ['hur', 2], ['f', 3], ['pit', 5, 'W'], ['f', 3], ['hur', 2], ['f', 3]])),
+  ELDER(163, 'No Escape', { speed: 33, startX: -76, firstDelay: 2, dashEvery: 3.6, spikeEvery: 3.4, screamEvery: 5.5, ceiling: true },
+    RUN([['f', 3], ['pop', 1], ['f', 3], ['big', 8], ['f', 3], ['pit', 5], ['f', 4]])),
+  ELDER(164, 'Edge of the World', { speed: 34, startX: -74, firstDelay: 2, dashEvery: 3.5, spikeEvery: 3.2, screamEvery: 5, ceiling: true },
+    RUN([['f', 3], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 3]])),
+  // the last room: the floor ends at a bottomless chasm (cols 18-33) that's far too wide to jump. Reach the edge and the
+  // Cyclone takes over - it flings you to the far ledge and its last gust blows the elder goat down into the chasm.
+  // The exit stays sealed until the storm is spent; it's the end of the game.
+  ELDER(165, 'The Last Gust', { speed: 30, startX: -80, firstDelay: 2, dashEvery: 3.5, spikeEvery: 4 },
+    B(g => {
+      g.floor(21, [[18, 16]]); g.put(22, 18, '.'.repeat(16)); g.put(20, 2, 'P');   // no spikes: it's a bottomless void
+      g.put(17, 9, 'S'); g.put(17, 37, 'S');
+    }),
+    { rescue: { triggerX: 120, landX: 290, edgeX: 144 } }),
+);
+
+// goat horns: rooms 11-19 keep their old rewards; of the later rooms only 20 and 40 pay out (1 horn each), and beating
+// the Cyclone in room 120 pays exactly 5 (hornsExact: not tripled by HORN_DROP_MULT)
+LEVELS.forEach((lv, i) => { if (i >= 19) lv.horns = (i === 19 || i === 39) ? 1 : 0; });
+Object.assign(LEVELS[119], { horns: 5, hornsExact: true });
+Object.assign(LEVELS[164], { horns: 10, hornsExact: true });   // beating the elder goat for good in room 165
 
