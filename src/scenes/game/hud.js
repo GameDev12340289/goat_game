@@ -12,7 +12,7 @@ Object.assign(GameScene.prototype, {
 
   updateHud() {
     const hp = this.maxHp > 1 ? `  hp ${this.hp}/${this.maxHp}` : '';
-    const wind = this.boss instanceof Cyclone || this.winds ? `  wind ${this.windHits}/3` : '';   // Cyclone / Wreckage rooms: small-tornado touches so far
+    const wind = (this.boss instanceof Cyclone && this.boss.cfg.minions) || this.winds ? `  wind ${this.windHits}/3` : '';   // Cyclone / Wreckage rooms: small-tornado touches so far
     this.game.events.emit('hud', `${GameScene.clock(this.time_)}  deaths ${this.deaths}${hp}` +
       `${this.rampageHud()}${this.shieldHud()}${this.gambleHud()}${this.trialHud()}${wind}`);
   },

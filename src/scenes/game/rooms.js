@@ -14,6 +14,7 @@ Object.assign(GameScene.prototype, {
     this.tornadoWarned = false; this.brickStunT = 0;   // Stormlands: first brick just stuns, the rest cost a life
     this.roomT = 0; this.freeze = 0; this.frost.clear(); this.player.body.clearTint();
     const spawn = this.spawnPoint = this.parseRoom(room, index);
+    if (room.eye) this.drawEye();
     this.drawRoom();
     this.drawPowder();
     this.rise = room.rise ? this.addRisingSpikes(room.rise) : null;
@@ -21,7 +22,7 @@ Object.assign(GameScene.prototype, {
     this.boss = null; this.hornDrop = null; this.jeff = null;
     this.fling = null; this.windHits = 0;                            // the Cyclone: how many of its small tornadoes have caught you this room
     // room 75 stays shut until the elder goat's horns are picked up; the Cyclone's until the wind stops
-    this.exitLocked = !!(room.boss && (room.boss.cornerX !== undefined || room.boss.finalStand)) || !!room.rescue;
+    this.exitLocked = !!(room.boss && (room.boss.cornerX !== undefined || room.boss.finalStand || room.boss.ambush)) || !!room.rescue;   // room 170's: until you step through the portal
     this.rescue = null; this.rescueDone = false;                     // the Elder Goat's last room: the Cyclone's rescue (rescue.js)
     // boss rooms: the shockwave travels along the floor the player spawns on
     this.groundY = this.floorBelow(spawn);
@@ -91,6 +92,29 @@ Object.assign(GameScene.prototype, {
       g.fillTriangle(s.tx, s.ty + 8, s.tx + 2, s.ty + 4, s.tx + 4, s.ty + 8);
       g.fillTriangle(s.tx + 4, s.ty + 8, s.tx + 6, s.ty + 4, s.tx + 8, s.ty + 8);
     }
+  },
+
+  // the True Eye of the Storm (room.eye): a clear sky glowing overhead, with the grey wall of the storm drifting slowly past
+  // at both edges and a few bright motes floating up. Dead calm.
+  drawEye() {
+    const g = this.add.graphics().setDepth(1);
+    this.roomObjs.push(g);
+    [0x1a2f5c, 0x24427a, 0x3a64a0, 0x6a9acb, 0xa8d0ee].forEach((c, i) => {      // the sky brightens toward the middle
+      g.fillStyle(c, 1); g.fillEllipse(CFG.W / 2, CFG.H * 0.55, CFG.W * (1.6 - i * 0.28), CFG.H * (2.2 - i * 0.4));
+    });
+    for (let i = 0; i < 18; i++) {
+      const left = i % 2 === 0, x = left ? Phaser.Math.Between(-10, 36) : Phaser.Math.Between(CFG.W - 36, CFG.W + 10);
+      const y = (i >> 1) * 22 + Phaser.Math.Between(-6, 6), w = Phaser.Math.Between(40, 70), h = Phaser.Math.Between(22, 40);
+      const cloud = this.add.ellipse(x, y, w, h, i % 3 ? 0x8a92a6 : 0x6e7688, 0.75).setDepth(2);
+      this.tweens.add({ targets: cloud, y: y + (left ? 8 : -8), x: x + (left ? 4 : -4), yoyo: true, repeat: -1, duration: 2600 + i * 120, ease: 'Sine.inOut' });
+      this.roomObjs.push(cloud);
+    }
+    const motes = this.add.particles(0, 0, 'pixel', {
+      emitZone: { type: 'random', source: new Phaser.Geom.Rectangle(40, CFG.H - 30, CFG.W - 80, 10) },
+      lifespan: { min: 2500, max: 4000 }, frequency: 220, speedY: { min: -14, max: -5 }, speedX: { min: -4, max: 4 },
+      alpha: { start: 0.9, end: 0 }, scale: { start: 1, end: 0.3 },
+    }).setDepth(3);
+    this.roomObjs.push(motes);
   },
 
   // powder snow: drawn in front of the player so you look sunk into it, with puffs of snow rising off the surface

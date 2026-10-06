@@ -34,7 +34,7 @@ LEVELS.push(
     RUN([['f', 3], ['hur', 2], ['f', 2], ['pit', 5], ['f', 2], ['hur', 2], ['f', 2], ['pit', 5, 'W'], ['f', 2], ['hur', 2], ['f', 3]])),
   // the last room: the floor ends at a bottomless chasm (cols 18-33) that's far too wide to jump. Reach the edge and the
   // Cyclone takes over - it flings you to the far ledge and its last gust blows the elder goat down into the chasm.
-  // The exit stays sealed until the storm is spent; it's the end of the game.
+  // The exit stays sealed until the storm is spent; it leads on to the Little Storm (166-170).
   ELDER(165, 'The Last Gust', { speed: 30, startX: -80, firstDelay: 2, dashEvery: 3.5, spikeEvery: 4 },
     B(g => {
       g.floor(21, [[18, 16]]); g.put(22, 18, '.'.repeat(16)); g.put(20, 2, 'P');   // no spikes: it's a bottomless void
