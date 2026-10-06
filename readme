@@ -1,1 +1,6 @@
-testmessage
+ Hi this is a fun game about goats and mountains. This is a game based of the google dino game.The controls are
+ A D to move left and right
+ W is to climb 
+ Shift is to dash (Any shift works)
+
+To boot the game up open terminal and type npm run start
