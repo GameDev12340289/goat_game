@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sonic-pi": {
+      "command": "node",
+      "args": ["tools/sonic-pi-mcp/server.js"]
+    }
+  }
+}
