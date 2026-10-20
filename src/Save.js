@@ -10,6 +10,12 @@ const Save = {
       if (raw) Object.assign(this.data, JSON.parse(raw));
       delete this.data.witheredBones;   // older saves: Withered bones are gone, the Withered drops goat horns now
     } catch (e) { /* ignore */ }
+    // one-time gift: unlock level 170 (room index 169) in the level picker, once per save
+    if (!this.data.level170Gift) {
+      this.data.unlocked = Math.max(this.data.unlocked, 169);
+      this.data.level170Gift = true;
+      this.save();
+    }
     // dev only: open the game as http://localhost:5173/?dev to get Tough Hide for free (players never see this)
     if (/[?&]dev\b/.test(location.search)) this.data.upgrades.toughHide = true;
     else if (this.data.hideGifted) { delete this.data.upgrades.toughHide; delete this.data.hideGifted; this.save(); }   // undo the earlier free gift for everyone else
