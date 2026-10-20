@@ -101,6 +101,8 @@ const JEFF_ITEMS = [
   { kind: 'item', id: 'gripChalk', name: 'Grip Chalk', cost: 7, desc: 'You slide down walls half as fast.' },
   { kind: 'item', id: 'rampageTonic', name: 'Rampage Tonic', cost: 12, desc: 'Rampage of the Mountains recharges a third faster (80 seconds).' },
   { kind: 'item', id: 'twinDash', name: 'Twin Dash', cost: 16, desc: 'Carry two dashes at once.' },
+  { kind: 'item', id: 'doubleJump', name: 'Double Jump', cost: 20, jumps: 100,
+    desc: 'Jump once more in mid-air before you land.' },
   // VIP items: Jeff's best gear, kept under the counter.
   { kind: 'vip', id: 'odin', name: "Odin's Blessing", cost: 125, trial: 'odin',
     desc: 'Trial: reach room 10 in 1:30 with no deaths (start at room 1). Costs 125 goat horns. ' +

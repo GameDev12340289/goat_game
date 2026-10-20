@@ -5,15 +5,20 @@ Object.assign(GameScene.prototype, {
     this.transitioning = true;
     this.checkTrials();
     const room = this.room;
+    const morePartsLeft = !!room.parts && this.part < room.parts.length - 1;        // room 171: the Debris Storm leads on to the Stairwell
     const horns = room.horns !== undefined ? room.horns
       : room.boss ? (room.finale ? CFG.HORNS_BOSS_DEFEATED : CFG.HORNS_PER_BOSS_ROOM) : 0;
-    if (horns > 0) this.awardHorns(horns, room.hornsExact);
+    if (horns > 0 && !morePartsLeft) this.awardHorns(horns, room.hornsExact);
     const beatFirstBoss = this.roomIndex === GameScene.CHASE_LAST;      // escaping room 19 leads through door 20: the first boss is beaten
     const cam = this.cameras.main;
     cam.fadeOut(180, ...GameScene.FADE_RGB);
     cam.once('camerafadeoutcomplete', () => {
-      if (this.roomIndex + 1 >= LEVELS.length) return this.finish();
-      this.loadRoom(this.roomIndex + 1);
+      if (morePartsLeft) this.loadRoom(this.roomIndex, this.part + 1);
+      else {
+        const next = room.loopTo !== undefined ? room.loopTo : this.roomIndex + 1;   // the tear (room 200) leads back to room 1
+        if (next >= LEVELS.length) return this.finish();
+        this.loadRoom(next);
+      }
       cam.fadeIn(180, ...GameScene.FADE_RGB);
       this.showTitle(this.room.name);
       if (beatFirstBoss) this.time.delayedCall(1800, () => this.showTitle('Your hide feels tougher than usual'));   // after the room name has faded

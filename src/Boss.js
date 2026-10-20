@@ -138,6 +138,7 @@ class Boss {
       if (ic.bounced || !hit(ic.x - 3, ic.y - 3, 6, 6)) continue;
       if (ic.final && Save.has('toughHide')) { this.bounceIcicle(ic, p); continue; }   // glances off your hide
       this.removeIcicle(ic);
+      if (ic.final) this.scene.game.events.emit('title', 'Your hide is not strong enough');   // room 75 without a Tough Hide
       return true;
     }
     if (hit(this.x - 88, CFG.H - 88, 86, 88)) return true;   // the body

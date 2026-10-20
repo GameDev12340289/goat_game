@@ -58,6 +58,7 @@ Object.assign(GameScene.prototype, {
         this.rescue = null; this.rescueDone = true;
         this.exitLocked = false;
         p.state = 'normal'; p.x = r.landX; p.y = r.landY; p.vx = 0; p.vy = 0;
+        this.showTitle('Both the Cyclone and the elder goat are gone');
         this.toast('The way home is open');
       }
     }

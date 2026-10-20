@@ -10,6 +10,9 @@ const Save = {
       if (raw) Object.assign(this.data, JSON.parse(raw));
       delete this.data.witheredBones;   // older saves: Withered bones are gone, the Withered drops goat horns now
     } catch (e) { /* ignore */ }
+    // dev only: open the game as http://localhost:5173/?dev to get Tough Hide for free (players never see this)
+    if (/[?&]dev\b/.test(location.search)) this.data.upgrades.toughHide = true;
+    else if (this.data.hideGifted) { delete this.data.upgrades.toughHide; delete this.data.hideGifted; this.save(); }   // undo the earlier free gift for everyone else
   },
 
   save() {
@@ -50,8 +53,16 @@ const Save = {
     return this.data.horns < (item.cost || 0) ? [`${item.cost - this.data.horns} horns`] : [];
   },
 
+  // lifetime jump counter (ground, wall and air jumps) - some of Jeff's wares need a number of jumps first
+  // The count is never shown; the 100th jump just announces that Jeff's Double Jump is now on offer.
+  addJump() {
+    this.data.jumps = (this.data.jumps || 0) + 1; this.save();
+    if (this.data.jumps === 100 && typeof game !== 'undefined') game.events.emit('title', 'Your legs are feeling lighter than usual');
+  },
+
   buyWithHorns(item) {
     if (this.has(item.id)) return 'owned';
+    if (item.jumps && (this.data.jumps || 0) < item.jumps) return 'needJumps';
     if (item.trial === 'odin' && !this.data.odinTrialDone) return 'needTrial';
     if (this.missingJeff(item).length) return 'poor';
     this.data.horns -= item.cost || 0;

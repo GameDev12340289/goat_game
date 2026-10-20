@@ -2,7 +2,8 @@
 // Merchant's room and pops up after a boss-chase finale. V talks to him, which opens JeffScene.
 Object.assign(GameScene.prototype, {
   // stall: false for his surprise mid-run cameos - he hasn't had time to set up shop, he's just there
-  spawnJeff(x, { auto = false, stall = true } = {}) {
+  // stay: he never packs up (the calm room after the storm)
+  spawnJeff(x, { auto = false, stall = true, stay = false } = {}) {
     const ground = this.groundY;
     if (stall) this.drawStall(x, ground);
     const y = stall ? ground - 3 : ground;
@@ -12,7 +13,7 @@ Object.assign(GameScene.prototype, {
     this.burst(x, y - 7, 0x7dffb2, 14, 70);
     this.jeff = { x, sprite, near: false };
     if (auto) this.time.delayedCall(1400, () => { if (this.jeff && !this.transitioning) this.openJeff(); });
-    this.time.delayedCall(CFG.JEFF_DESPAWN, () => { if (this.jeff && !this.scene.isPaused()) this.jeffLeaves(); });   // he doesn't wait around forever
+    if (!stay) this.time.delayedCall(CFG.JEFF_DESPAWN, () => { if (this.jeff && !this.scene.isPaused()) this.jeffLeaves(); });   // he doesn't wait around forever
   },
 
   // Jeff's little wooden stall: a counter, a striped awning and a hanging lantern

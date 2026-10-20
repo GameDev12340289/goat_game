@@ -179,50 +179,72 @@ class ShopScene extends MenuBase {
 
 
 // Jeff the merchant (sets up shop in room 120, once the Cyclone dies out): sells armour, items and his VIP tier for goat horns only.
-// Runs on top of the paused Game scene.
-const JEFF_TABS = ['armour', 'item', 'vip'];
-const JEFF_TAB_LABELS = { armour: '<  ARMOUR  >', item: '<  ITEMS  >', vip: '<  VIP ITEMS  >' };
+// Runs on top of the paused Game scene. Every ware is laid out on the counter at once, a card each, in three shelves
+// (armour / items / VIP): hover a card to read about it, click it to buy. Arrow keys / WASD + ENTER work too.
+const JEFF_SHELVES = [
+  { kind: 'armour', label: 'ARMOUR', color: 0x4fa3d9 },
+  { kind: 'item', label: 'ITEMS', color: 0x7dffb2 },
+  { kind: 'vip', label: 'VIP  -  UNDER THE COUNTER', color: 0xffd23f },
+];
 
-class JeffScene extends MenuBase {
+class JeffScene extends Phaser.Scene {
   constructor() { super('Jeff'); }
 
   create() {
     const Z = CFG.ZOOM, W = CFG.W * Z, H = CFG.H * Z;
-    this.add.rectangle(W / 2, H / 2, W, H, 0x05060d, 0.86);
-    this.add.image(90, 230, 'jeff').setOrigin(0.5, 1).setScale(8);
-    this.add.text(W / 2 + 40, 56, "JEFF'S WARES", uiText(56, { color: '#7dffb2' })).setOrigin(0.5);
-    this.add.text(W / 2 + 40, 100, 'horns buy the wares. lots of horns buy the good stuff.', uiText(18, { color: '#9fb0d8' })).setOrigin(0.5);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x05060d, 0.9);
+    this.add.image(64, 250, 'jeff').setOrigin(0.5, 1).setScale(7);
+    this.add.text(W / 2 + 60, 30, "JEFF'S WARES", uiText(40, { color: '#7dffb2' })).setOrigin(0.5);
     this.add.image(W - 24, 26, 'horn').setOrigin(1, 0.5).setScale(4);
     this.horns = this.add.text(W - 24 - 40, 26, String(Save.data.horns), uiText(28, { color: '#ffd23f' })).setOrigin(1, 0.5);
-    this.tabText = this.add.text(W / 2 + 40, 146, '', uiText(22, { color: '#ffd23f' })).setOrigin(0.5);
-    this.msg = this.add.text(W / 2, H - 30, '', uiText(18, { color: '#ffd23f' })).setOrigin(0.5);
-    this.desc = this.add.text(W / 2, H - 92, '', uiText(18, { align: 'center', wordWrap: { width: 800 } })).setOrigin(0.5);
+    this.msg = this.add.text(W / 2, H - 22, '', uiText(18, { color: '#ffd23f' })).setOrigin(0.5);
+    this.desc = this.add.text(W / 2 + 60, H - 78, '', uiText(16, { align: 'center', wordWrap: { width: 760 } })).setOrigin(0.5);
 
-    this.tab = 'armour';
-    this.items = this.tabItems();
-    this.setupMenu(196, 42, 24);
-    ['LEFT', 'A'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.switchTab(-1)));
-    ['RIGHT', 'D'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.switchTab(1)));
-    ['ESC', 'BACKSPACE', 'V'].forEach(n => this.input.keyboard.on('keydown-' + n, () => this.close()));
+    // one card per ware, laid out in shelves: cards[i] = { u, rowI, colI, box, name, price, x, y }
+    const CW = 150, CH = 66, GAP = 10, X0 = 140, SHELF_Y = [86, 196, 306];
+    this.cards = [];
+    JEFF_SHELVES.forEach((shelf, rowI) => {
+      this.add.text(X0, SHELF_Y[rowI] - 16, shelf.label, uiText(14, { color: '#' + shelf.color.toString(16).padStart(6, '0') })).setOrigin(0, 0.5);
+      this.add.rectangle(X0 + 190, SHELF_Y[rowI] - 16, 700 - 190 + 40, 1, shelf.color, 0.35).setOrigin(0, 0.5);
+      // wares with a jump requirement stay off the counter until you've earned them (the count itself is never shown)
+      JEFF_ITEMS.filter(u => u.kind === shelf.kind && (!u.jumps || (Save.data.jumps || 0) >= u.jumps || Save.has(u.id))).forEach((u, colI) => {
+        const x = X0 + colI * (CW + GAP), y = SHELF_Y[rowI];
+        const box = this.add.rectangle(x, y, CW, CH, 0x141c3a, 1).setOrigin(0).setStrokeStyle(2, 0x2b3a67)
+          .setInteractive({ useHandCursor: true });
+        this.add.rectangle(x, y, CW, 5, shelf.color, 1).setOrigin(0);
+        const name = this.add.text(x + CW / 2, y + 24, u.name, uiText(14, { align: 'center', wordWrap: { width: CW - 12 } })).setOrigin(0.5);
+        const price = this.add.text(x + CW / 2, y + 50, '', uiText(15, { color: '#ffd23f' })).setOrigin(0.5);
+        const card = { u, rowI, colI, box, name, price, x, y };
+        box.on('pointerover', () => this.select(card));
+        box.on('pointerdown', () => { this.select(card); this.buy(u); });
+        this.cards.push(card);
+      });
+    });
+
+    this.add.text(W / 2 + 60, H - 46, 'click a ware to buy it   -   ESC / V to leave', uiText(14, { color: '#9fb0d8' })).setOrigin(0.5);
+    const leave = this.add.text(W - 24, H - 22, 'LEAVE', uiText(20)).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+    leave.on('pointerover', () => leave.setColor('#ffd23f')); leave.on('pointerout', () => leave.setColor('#ffffff'));
+    leave.on('pointerdown', () => this.close());
+
+    const kb = this.input.keyboard, on = (names, fn) => names.forEach(n => kb.on('keydown-' + n, fn));
+    on(['LEFT', 'A'], () => this.step(-1, 0)); on(['RIGHT', 'D'], () => this.step(1, 0));
+    on(['UP', 'W'], () => this.step(0, -1)); on(['DOWN', 'S'], () => this.step(0, 1));
+    on(['ENTER', 'SPACE', 'Z', 'C', 'J', 'K'], () => this.buy(this.sel.u));
+    on(['ESC', 'BACKSPACE', 'V'], () => this.close());
+    this.select(this.cards[0]);
   }
 
-  price(u) { return `${u.cost} horns`; }
-
-  // the wares on the current tab, plus LEAVE
-  tabItems() {
-    const list = JEFF_ITEMS.filter(u => u.kind === this.tab).map(u => ({
-      up: u,
-      text: () => `${u.name.padEnd(16)} ${(Save.has(u.id) ? 'OWNED' : this.price(u)).padStart(11)}`,
-      run: () => this.buy(u),
-    }));
-    list.push({ text: () => 'LEAVE', run: () => this.close() });
-    return list;
+  // keyboard: move to the neighbouring card (the column is kept as far as the next shelf allows)
+  step(dc, dr) {
+    const { rowI, colI } = this.sel;
+    const shelf = r => this.cards.filter(c => c.rowI === r);
+    const r = Phaser.Math.Clamp(rowI + dr, 0, JEFF_SHELVES.length - 1), row = shelf(r);
+    const c = dr ? Math.min(colI, row.length - 1) : (colI + dc + row.length) % row.length;
+    this.select(row[c]);
   }
 
-  switchTab(d = 1) {
-    this.tab = JEFF_TABS[(JEFF_TABS.indexOf(this.tab) + d + JEFF_TABS.length) % JEFF_TABS.length];
-    this.items = this.tabItems();
-    this.sel = 0;
+  select(card) {
+    this.sel = card;
     this.refresh();
   }
 
@@ -238,6 +260,7 @@ class JeffScene extends MenuBase {
       ok: `Pleasure doing business! (${u.name})`, owned: 'You already have that.',
       poor: `Still need ${Save.missingJeff(u).join(', ')}. Come back with more.`,
       needTrial: 'Odin wants proof first: reach room 10 in 1:30 with no deaths.',
+      needJumps: 'Not for sale yet.',
     };
     this.msg.setText(say[r]).setColor(r === 'ok' ? '#7dffb2' : '#ff7070');
     this.horns.setText(String(Save.data.horns));
@@ -245,16 +268,12 @@ class JeffScene extends MenuBase {
   }
 
   refresh() {
-    if (!this.labels) return;
-    this.labels.forEach((t, i) => {
-      const it = this.items[i];
-      t.setVisible(!!it);
-      if (!it) return;
-      t.setText((i === this.sel ? '> ' : '  ') + it.text() + (i === this.sel ? ' <' : '  '));
-      t.setColor(i === this.sel ? '#ffd23f' : '#ffffff');
-    });
-    if (this.tabText) this.tabText.setText(`${JEFF_TAB_LABELS[this.tab]}   (left / right to switch)`);
-    const it = this.items[this.sel];
-    if (this.desc) this.desc.setText(it && it.up ? it.up.desc : '');
+    for (const c of this.cards) {
+      const owned = Save.has(c.u.id), afford = Save.data.horns >= c.u.cost, picked = c === this.sel;
+      c.box.setFillStyle(owned ? 0x16302a : picked ? 0x26356a : 0x141c3a).setStrokeStyle(2, picked ? 0xffd23f : owned ? 0x3f8f5a : 0x2b3a67);
+      c.name.setAlpha(owned || afford ? 1 : 0.55);
+      c.price.setText(owned ? 'OWNED' : `${c.u.cost} horns`).setColor(owned ? '#7dffb2' : afford ? '#ffd23f' : '#ff7070');
+    }
+    if (this.sel) this.desc.setText(`${this.sel.u.name}  -  ${this.sel.u.desc}`);
   }
 }

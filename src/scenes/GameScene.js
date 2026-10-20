@@ -71,6 +71,7 @@ class GameScene extends Phaser.Scene {
     p.climbMult = Save.has('ironGrip') ? 1.5 : 1;
     p.maxStamina = CFG.STAMINA * (Save.has('sureFooting') ? 1.5 : 1);
     p.maxDashes = Save.has('twinDash') ? 2 : 1;
+    p.maxAirJumps = Save.has('doubleJump') ? 1 : 0;
     p.runMax = CFG.RUN_MAX * (Save.has('swiftHooves') ? 1.1 : 1);
   }
 
@@ -161,7 +162,7 @@ class GameScene extends Phaser.Scene {
     if (this.freezeT > 0) { this.freezeT -= dt; return; }
     if (this.deadT > 0) {
       this.deadT -= dt;
-      if (this.deadT <= 0) this.loadRoom(this.roomIndex);
+      if (this.deadT <= 0) this.loadRoom(this.roomIndex, this.part);
       return;
     }
     if (this.fling) return this.updateFling(dt);

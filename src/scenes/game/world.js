@@ -17,6 +17,8 @@ Object.assign(GameScene.prototype, {
     if (this.updatePopSpikes()) return this.hurt();
     if (this.tornadoes.length) this.updateTornadoes(dt);
     if (this.winds) this.winds.update(dt, p);
+    if (this.lightning) this.updateLightning(dt);
+    if (this.swirl) this.updateSwirl(dt);
     if (p.state === 'fling') return;                     // a small tornado just caught you for the 3rd time
     if (this.rise && this.updateRise(dt)) return this.hurt();
     if (this.spikes.some(s => this.overlapsPlayer(s.x, s.y, s.w, s.h))) return this.hurt();
