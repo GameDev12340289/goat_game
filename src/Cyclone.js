@@ -253,10 +253,14 @@ class Cyclone {
     const open = this.state === 'clash' ? this.clash.t / Cyclone.CLASH_TIME : 1;
     if (open <= 0) return;
     const e = open * open * (3 - 2 * open), cx = this.clash.x, cy = this.groundY - 15, rx = 10 * e, ry = 17 * e, t = this.t;
-    g.fillStyle(0x6a4ad8, 0.3 * e); g.fillEllipse(cx, cy, rx * 2 + 10, ry * 2 + 10);                // glow
-    g.fillStyle(0x9a7aff, 0.9); g.fillEllipse(cx, cy, rx * 2, ry * 2);
-    g.fillStyle(0xe8d8ff, 0.95); g.fillEllipse(cx, cy, rx * 1.4, ry * 1.4);
-    g.fillStyle(0x1a0e3a, 1); g.fillEllipse(cx, cy, rx * 0.8, ry * 0.8);
+    g.fillStyle(0x6a2ad8, 0.16 * e); g.fillEllipse(cx, cy, rx * 2 + 12, ry * 2 + 12);               // faint glow
+    // translucent distorted purple: the ellipse is cut into thin slices, each sheared sideways by a travelling wave
+    for (let dy = -ry; dy < ry; dy += 2) {
+      const hw = rx * Math.sqrt(1 - (dy / ry) * (dy / ry)), i = dy / 2;
+      const wave = (Math.sin(t * 3.2 + i * 0.55) * 2.6 + Math.sin(t * 7.1 + i * 1.3) * 1.2) * e;
+      g.fillStyle(Math.floor(i) % 3 ? 0x9a5cff : 0xc79bff, (0.26 + 0.16 * Math.sin(t * 2.1 + i * 0.4)) * e);
+      g.fillRect(cx - hw + wave, cy + dy, hw * 2, 2);
+    }
     for (let i = 0; i < 10; i++) {                                                                  // light spiralling into it
       const a = t * 3 + i * 0.63, r = 1 - ((t * 0.9 + i * 0.1) % 1);
       g.fillStyle(i % 2 ? 0xffffff : 0xbfa8ff, 0.9 * e);

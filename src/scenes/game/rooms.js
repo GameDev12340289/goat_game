@@ -20,11 +20,12 @@ Object.assign(GameScene.prototype, {
     this.cameras.main.setZoom(CFG.ZOOM * (room.zoom || 1)).centerOn(CFG.W / 2, CFG.H / 2);   // zoomed-out rooms show a margin around the grid
     const cam = this.cameras.main;
     if (cam.postFX) cam.postFX.clear();                                                      // the tear's colour drain / warp only lasts for its room
-    if (this.tearTween) { this.tearTween.stop(); this.tearTween = null; }
+    (this.tearTweens || []).forEach(t => t.stop()); this.tearTweens = [];
+    cam.setAngle(0);                                                                         // ...and so does the swaying view of the later tears
     if (this.tearTimer) { this.tearTimer.remove(); this.tearTimer = null; }
     if (room.zoom) this.drawMargins(spawn, room.debris ? 0x3a3f52 : room.tear ? 0xdadada : 0x16264d);
     if (room.debris) this.drawDebris();
-    if (room.tear) this.drawTear();
+    if (room.tear) this.drawTear(room.distort || 0);
     if (room.eye) this.drawEye();
     if (room.beyond) this.drawBeyond();
     if (room.ruins) this.drawRuins(spawn);
@@ -52,6 +53,8 @@ Object.assign(GameScene.prototype, {
     if (room.lightning) this.setupLightning(room.lightning);                     // the True Eye: a strike on your spot every 10s
     if (room.hint) this.time.delayedCall(700, () => this.toast(room.hint));
 
+    this.doorway = null;
+    if (room.doorway) this.addDoorway(room.doorway);                            // the stairwell's way out
     this.swirl = null;
     if (room.swirl || room.debrisThrow) this.setupSwirl(room);                  // 171: swarms of debris / debris thrown ever faster
     this.player.spawn(spawn.x, room.fallIn ? 0 : spawn.y);                      // (the ceiling is solid in rooms that don't exit through the top)
@@ -64,6 +67,7 @@ Object.assign(GameScene.prototype, {
     this.grid = []; this.powder = [];     // solid tiles / powder snow tiles, indexed [row][col]
     this.spikes = []; this.crystals = []; this.coins = []; this.popSpikes = [];
     this.tornadoes = []; this.bricks = [];
+    this.fakeSpikes = []; this.warps = [];
     let spawn = { x: 16, y: 16 };
     for (let r = 0; r < CFG.ROWS; r++) {
       const line = (room.rows[r] || '').padEnd(CFG.COLS, '.');
@@ -74,6 +78,8 @@ Object.assign(GameScene.prototype, {
         row.push(ch === '#');
         pow.push(ch === 'W');
         if (ch === '^') this.spikes.push({ x: px, y: py + 4, w: 8, h: 4, tx: px, ty: py });
+        else if (ch === 'F') this.fakeSpikes.push({ tx: px, ty: py });                    // looks like a spike, hurts nothing
+        else if (ch === 'X') this.addWarp(px, py);
         else if (ch === 'P') spawn = { x: px, y: py + CFG.TILE - CFG.PH };
         else if (ch === 'D') this.addCrystal(px, py);
         else if (ch === 'a' || ch === 'b') this.addPopSpike(px, py, ch === 'b' ? 0.5 : 0);
@@ -110,6 +116,16 @@ Object.assign(GameScene.prototype, {
     for (const s of this.spikes) {
       g.fillTriangle(s.tx, s.ty + 8, s.tx + 2, s.ty + 4, s.tx + 4, s.ty + 8);
       g.fillTriangle(s.tx + 4, s.ty + 8, s.tx + 6, s.ty + 4, s.tx + 8, s.ty + 8);
+    }
+    if (this.fakeSpikes.length) {            // fake spikes: drawn like the real ones, with only a faint flicker to give them away
+      const f = this.add.graphics().setDepth(5);
+      this.roomObjs.push(f);
+      f.fillStyle(0xe8ecff);
+      for (const s of this.fakeSpikes) {
+        f.fillTriangle(s.tx, s.ty + 8, s.tx + 2, s.ty + 4, s.tx + 4, s.ty + 8);
+        f.fillTriangle(s.tx + 4, s.ty + 8, s.tx + 6, s.ty + 4, s.tx + 8, s.ty + 8);
+      }
+      this.tweens.add({ targets: f, alpha: 0.65, yoyo: true, repeat: -1, duration: 700, ease: 'Sine.inOut' });
     }
   },
 
@@ -231,36 +247,93 @@ Object.assign(GameScene.prototype, {
     }
   },
 
+  // the doorway (room.doorway = { x, ledgeRow }): a worn stone frame on a ledge with a translucent, distorted purple portal
+  // inside it, rippling and shearing. Walk into it to leave the room (updateDoorway, world.js).
+  addDoorway({ x, ledgeRow }) {
+    const y = ledgeRow * CFG.TILE, w = 18, h = 28;
+    const frame = this.add.graphics().setDepth(4), glow = this.add.graphics().setDepth(7);
+    this.roomObjs.push(frame, glow);
+    frame.fillStyle(0x4a5068); frame.fillRect(x - w / 2 - 4, y - h - 4, 4, h + 4); frame.fillRect(x + w / 2, y - h - 4, 4, h + 4);   // posts
+    frame.fillRect(x - w / 2 - 6, y - h - 7, w + 12, 4);                                                                          // lintel
+    frame.fillStyle(0x6a7088); frame.fillRect(x - w / 2 - 4, y - h - 4, 1, h + 4); frame.fillRect(x - w / 2 - 6, y - h - 7, w + 12, 1);    this.doorway = { x, y, w, h, glow, t: 0 };
+  },
+
+  updateDoorway(dt) {
+    const d = this.doorway, g = d.glow, p = this.player;
+    d.t += dt;
+    g.clear();
+    const top = d.y - d.h - 3, rows = Math.floor((d.h + 3) / 2);
+    for (let i = 0; i < rows; i++) {                                              // slices of purple, each sheared sideways by a travelling wave
+      const wave = Math.sin(d.t * 3.2 + i * 0.55) * 2.6 + Math.sin(d.t * 7.1 + i * 1.3) * 1.2;
+      const a = 0.28 + 0.2 * Math.sin(d.t * 2.1 + i * 0.4);
+      g.fillStyle(i % 3 ? 0x9a5cff : 0xc79bff, a);
+      g.fillRect(d.x - d.w / 2 + wave, top + i * 2, d.w, 2);
+    }
+    g.fillStyle(0x6a2ad8, 0.22 + 0.08 * Math.sin(d.t * 4)); g.fillEllipse(d.x, d.y - d.h / 2, d.w * 1.5, d.h * 1.2);   // see-through haze around it
+    for (let i = 0; i < 5; i++) {                                                 // motes spiralling in
+      const a = d.t * 2.4 + i * 1.26, r = 1 - ((d.t * 0.7 + i * 0.2) % 1);
+      g.fillStyle(0xe8d8ff, 0.8 * r); g.fillRect(Math.round(d.x + Math.cos(a) * d.w * 0.7 * r), Math.round(d.y - d.h / 2 + Math.sin(a) * d.h * 0.5 * r), 1, 2);
+    }
+    if (p.state !== 'dead' && !this.transitioning && this.overlapsPlayer(d.x - d.w / 2, top, d.w, d.h + 3)) {
+      this.showTitle('The doorway pulls you in...');
+      this.nextRoom();
+    }
+  },
+
   // the dimensional tear (room.tear): everything drained of colour and a blank pale void in the middle - the room itself is
   // left clean. The warping is all around it: out in the margins and the strip above, heavily stretched, tilted and flickering
   // copies of things from the storm, with glitch slices tearing through the margins only.
-  drawTear() {
-    const cam = this.cameras.main, W = CFG.W, H = CFG.H;
-    if (cam.postFX) cam.postFX.addColorMatrix().grayscale(1);
+  // lv (room.distort, rooms 201-210, 1..10): the warping spreads and gets worse with every room - more and wilder shapes, ghosts
+  // creeping into the room itself (lv 4+), glitch slices across the whole screen (lv 4+), a wobbling lens (lv 3+), the whole
+  // view swaying (lv 5+) and flashes of inverted colour (lv 7+). Purely visual: nothing here changes the floor under you.
+  drawTear(lv = 0) {
+    const cam = this.cameras.main, W = CFG.W, H = CFG.H, rnd = Phaser.Math.Between;
+    let matrix = null;
+    if (cam.postFX) {
+      matrix = cam.postFX.addColorMatrix(); matrix.grayscale(1);
+      if (lv >= 3) {
+        const lens = cam.postFX.addBarrel(1);
+        this.tearTweens.push(this.tweens.add({ targets: lens, amount: 1 + 0.05 * lv, yoyo: true, repeat: -1, duration: 2600 - lv * 120, ease: 'Sine.inOut' }));
+      }
+    }
+    if (lv >= 5) {                                                    // the whole view sways, a little more every room
+      const sway = { a: 0 };
+      this.tearTweens.push(this.tweens.add({ targets: sway, a: 1, yoyo: true, repeat: -1, duration: 1800 - lv * 90, ease: 'Sine.inOut',
+        onUpdate: () => cam.setAngle((sway.a - 0.5) * 0.9 * (lv - 4)) }));
+    }
+    const margin = 24 + lv * 3;                                       // ghosts per side
     const spots = [];                                                // the margins (dense) and a thin strip above the room
-    for (let i = 0; i < 24; i++) spots.push([-78 + (i % 4) * 18, 10 + (i >> 2) * 30], [W + 6 + (i % 4) * 18, 10 + (i >> 2) * 30]);
-    for (let i = 0; i < 8; i++) spots.push([i * 46 - 10, -6]);
+    for (let i = 0; i < margin; i++) spots.push([-78 + (i % 4) * 18, 10 + (i >> 2) * 30], [W + 6 + (i % 4) * 18, 10 + (i >> 2) * 30]);
+    for (let i = 0; i < 8 + lv; i++) spots.push([i * (46 - lv * 2) - 10, -6 + lv * 3]);
+    for (let i = 0; i < Math.max(0, lv - 3) * 3; i++) spots.push([rnd(30, W - 20), rnd(30, H - 20)]);   // they creep into the room
     spots.forEach(([x, y], i) => {
+      const inside = x > 10 && x < W - 10 && y > 20, k = 1 + lv * 0.25;
       const key = ['tornado', 'jeff', 'player', 'tornado', 'hair'][i % 5];
-      const o = this.add.image(x, y + (i % 3) * 14, key).setOrigin(0.5, 1).setDepth(3).setAlpha(0.4 + (i % 4) * 0.12);
-      o.setScale(0.3 + (i % 5) * 0.7, 2 + (i % 6) * 2).setAngle((i * 53) % 90 - 45).setFlipY(i % 3 === 0).setFlipX(i % 2 === 0);   // stretched and tilted
+      const o = this.add.image(x, y + (i % 3) * 14, key).setOrigin(0.5, 1).setDepth(3).setAlpha(inside ? 0.25 : 0.4 + (i % 4) * 0.12);
+      o.setScale((0.3 + (i % 5) * 0.7) * (inside ? 0.8 : k), (2 + (i % 6) * 2) * k).setAngle((i * 53) % 90 - 45).setFlipY(i % 3 === 0).setFlipX(i % 2 === 0);   // stretched and tilted
       this.tweens.add({
-        targets: o, x: x + ((i * 13) % 25) - 12, scaleX: o.scaleX * (2.2 - (i % 3) * 0.6), scaleY: o.scaleY * (0.6 + (i % 4) * 0.3),
-        angle: o.angle + ((i % 2) ? 28 : -28), yoyo: true, repeat: -1, duration: 600 + (i * 211) % 1300, ease: 'Sine.inOut',
+        targets: o, x: x + (((i * 13) % 25) - 12) * k, scaleX: o.scaleX * (2.2 - (i % 3) * 0.6), scaleY: o.scaleY * (0.6 + (i % 4) * 0.3),
+        angle: o.angle + ((i % 2) ? 28 : -28) * k, yoyo: true, repeat: -1, duration: Math.max(250, 600 + (i * 211) % 1300 - lv * 60), ease: 'Sine.inOut',
       });
       this.roomObjs.push(o);
     });
-    const slices = [];                                               // horizontal glitch bars that tear across the margins
-    for (let i = 0; i < 12; i++) {
-      const bar = this.add.rectangle(0, 0, 70 + (i % 3) * 20, 2 + i % 3 * 3, i % 2 ? 0x000000 : 0xffffff, 0.45).setDepth(19).setVisible(false);
+    const slices = [];                                               // horizontal glitch bars that tear across the margins (and, later, everything)
+    for (let i = 0; i < 12 + lv * 3; i++) {
+      const bar = this.add.rectangle(0, 0, 70 + (i % 3) * 20 + lv * 8, 2 + i % 3 * 3, i % 2 ? 0x000000 : 0xffffff, 0.45).setDepth(19).setVisible(false);
       slices.push(bar); this.roomObjs.push(bar);
     }
     this.tearTimer = this.time.addEvent({
-      delay: 200, loop: true, callback: () => {
+      delay: Math.max(70, 200 - lv * 12), loop: true, callback: () => {
         slices.forEach((b, i) => {
-          const on = Math.random() < 0.45; b.setVisible(on);
-          if (on) b.setPosition(i % 2 ? -36 + Phaser.Math.Between(-20, 20) : W + 36 + Phaser.Math.Between(-20, 20), Phaser.Math.Between(-10, H + 10));
+          const on = Math.random() < Math.min(0.9, 0.45 + lv * 0.04); b.setVisible(on);
+          if (!on) return;
+          const wide = lv >= 4 && i % 3 === 0;                       // from room 204 some slices cut right across the room
+          b.setPosition(wide ? rnd(0, W) : i % 2 ? -36 + rnd(-20, 20) : W + 36 + rnd(-20, 20), rnd(-10, H + 10));
         });
+        if (matrix && lv >= 7 && cam.postFX && cam.postFX.list.includes(matrix)) {                                     // brief flashes of inverted colour
+          matrix.reset(); matrix.grayscale(1);
+          if (Math.random() < (lv - 6) * 0.08) { matrix.negative(); this.time.delayedCall(70, () => { if (cam.postFX.list.includes(matrix)) { matrix.reset(); matrix.grayscale(1); } }); }
+        }
       },
     });
   },

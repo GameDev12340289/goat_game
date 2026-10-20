@@ -5,6 +5,7 @@
 //   storm.js     Stormlands bricks, Cyclone wind   progress.js  room transitions, trials and rewards
 //   jeff.js      Jeff the merchant                 effects.js   particles and ghosts
 //   hud.js       HUD text and UIScene messages   rescue.js    the Cyclone's rescue in the Elder Goat's last room
+//   warps.js     the Unravelling's distortion spots (tile 'X')
 class GameScene extends Phaser.Scene {
   // the boss chase (rooms 11-19) spans these room indexes; the Mountain Toughened Hide trial runs across it
   static CHASE_FIRST = 10;

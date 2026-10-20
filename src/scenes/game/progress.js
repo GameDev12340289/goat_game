@@ -15,8 +15,8 @@ Object.assign(GameScene.prototype, {
     cam.once('camerafadeoutcomplete', () => {
       if (morePartsLeft) this.loadRoom(this.roomIndex, this.part + 1);
       else {
-        const next = room.loopTo !== undefined ? room.loopTo : this.roomIndex + 1;   // the tear (room 200) leads back to room 1
-        if (next >= LEVELS.length) return this.finish();
+        const next = this.roomIndex + 1;
+        if (next >= LEVELS.length) return this.finish();   // leaving the last room (210) ends the run
         this.loadRoom(next);
       }
       cam.fadeIn(180, ...GameScene.FADE_RGB);
