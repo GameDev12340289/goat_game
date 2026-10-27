@@ -35,6 +35,17 @@ LEVELS.push(...DEBRIS_NAMES.map((name, i) => {
   return DEBRIS(n, name, winds, RUN(DEBRIS_LAYOUTS[i % DEBRIS_LAYOUTS.length], g => T.forEach(c => g.put(17, c, 'T'))));
 }));
 
+// the storm's last trap, rooms 181-199 only (it ends at door 199): spikes lunge out of the walls near you (wallSpikes, see
+// lightning.js) and lightning strikes your spot (lightning), both a little faster every room. Room 200 onwards is free of it.
+for (let n = 181; n <= 199; n++) {
+  const t = (n - 181) / 18;
+  Object.assign(LEVELS[n - 1], {
+    lightning: { every: 8 - 3 * t, warn: 1.3 - 0.2 * t },
+    wallSpikes: { every: 3.6 - 1.4 * t, warn: 0.75 - 0.15 * t, len: 3 },
+  });
+}
+LEVELS[180].hint = 'The walls bite... and the sky is angry';
+
 // the tear: a flat, empty floor and nothing else. No tornadoes, no hazards, no boss. Push through its right edge and the
 // tear keeps going: rooms 201-210, each one more distorted than the last (distort 1..10, see GameScene.drawTear).
 LEVELS.push({ name: '200 - The Tear', exit: 'right', zoom: 0.8, tear: true, rows: RUN([['f', 34]]) });
@@ -43,7 +54,7 @@ LEVELS.push({ name: '200 - The Tear', exit: 'right', zoom: 0.8, tear: true, rows
 // 202, bits of the broken world are flung at you now and then (slowly - the distortion is the point). Room 210 is the end of
 // it: push through and the run is complete.
 // Rooms 211-220 keep going the same way (the warping stops getting worse at distort 14, where the view is already a mess).
-// Rooms 221-225 add two tricks, written straight into the tile rows (see builders.js / GameScene.addWarp):
+// Rooms 221-230 add two tricks (230 also ends in the tear's cutscene and leads on to the Hand's chase, hand.js), written straight into the tile rows (see builders.js / GameScene.addWarp):
 //   F  a fake spike: looks like a floor spike (with a faint flicker) but is harmless
 //   X  a distortion spot: warps the space around it more the closer you get, and touching it distorts the room right
 //      out of shape and kills you
@@ -51,6 +62,7 @@ const UNRAVEL_NAMES = [
   'Hairline Crack', 'Fault Line', 'Static', 'Double Vision', 'Slipping', 'Echoes', 'Unravel', 'No Edges', 'Nothing Holds', 'The Seam',
   'Fraying Edge', 'Hollow Light', 'Wrong Angles', 'Stutter', 'Afterimage', 'Fold', 'Backwards Wind', 'Dead Pixels', 'Nothing Left', 'The Second Seam',
   'False Floor', 'Phantom Teeth', 'Warped Mercy', 'The Pull', 'Collapse',
+  'Undertow', 'Hollow Steps', 'Borrowed Time', 'Nothing Behind You', 'The End of the Road',
 ];
 
 // extra courses for 211-220 (the first ones reuse the Debris layouts above)
@@ -75,6 +87,18 @@ const WARP_ROOMS = [
     [[20, 15, 'FF'], [20, 17, 'X'], [20, 26, 'FF'], [20, 28, 'X'], [15, 33, 'X']]],
   [[['f', 3], ['pit', 4], ['f', 7], ['pit', 5], ['f', 7], ['pit', 4], ['f', 6]],
     [[20, 11, 'FF'], [20, 13, 'X'], [15, 19, 'X'], [20, 23, 'FF'], [20, 25, 'X'], [15, 30, 'X'], [20, 34, 'FF'], [20, 36, 'X']]],
+  // rooms 226-230
+  [[['f', 5], ['pit', 4], ['f', 6], ['hur', 2], ['f', 6], ['pit', 5], ['f', 7]],
+    [[20, 4, 'FF'], [20, 14, 'X'], [20, 16, 'FF'], [20, 23, 'X'], [15, 28, 'X'], [20, 33, 'FF'], [20, 35, 'X']]],
+  [[['f', 4], ['pit', 5], ['f', 5], ['pit', 5], ['f', 5], ['pit', 5], ['f', 6]],
+    [[20, 4, 'FF'], [15, 9, 'X'], [20, 14, 'X'], [15, 19, 'X'], [20, 24, 'FF'], [15, 29, 'X'], [20, 33, 'FF'], [20, 36, 'X']]],
+  [[['f', 3], ['big', 8], ['f', 5], ['hur', 2], ['f', 6], ['big', 8], ['f', 3]],
+    [[20, 14, 'FF'], [20, 16, 'X'], [20, 22, 'FF'], [20, 24, 'X'], [15, 33, 'X']]],
+  [[['f', 4], ['pit', 4], ['f', 6], ['pit', 5], ['f', 6], ['pit', 4], ['f', 7]],
+    [[20, 4, 'FF'], [20, 13, 'X'], [20, 15, 'FF'], [15, 19, 'X'], [20, 24, 'FF'], [20, 25, 'X'], [15, 29, 'X'], [20, 34, 'FF'], [20, 36, 'X']]],
+  // room 230: the last stretch. Plain floor to the very end, where the sky gives way (handScene, see handscene.js)
+  [[['f', 6], ['pit', 5], ['f', 8], ['pit', 5], ['f', 13]],
+    [[20, 5, 'FF'], [20, 17, 'X'], [20, 19, 'FF'], [20, 30, 'FF']]],
 ];
 
 LEVELS.push(...UNRAVEL_NAMES.map((name, i) => {
@@ -88,6 +112,7 @@ LEVELS.push(...UNRAVEL_NAMES.map((name, i) => {
       else g.put(18, 20 + (i % 3) * 4, 'S');
     }),
   };
+  if (n === 230) room.handScene = { triggerX: 280 };     // the end of the road: the sky tears open behind you, then the chase (231-235)
   if (lv >= 2) {
     const gap = Math.max(2.4, 6.5 - 0.35 * lv);
     room.debrisThrow = { first: 4, every: gap, factor: 1, min: gap, speed: Math.min(90, 45 + 4 * lv), speedUp: 1, maxSpeed: 100 };

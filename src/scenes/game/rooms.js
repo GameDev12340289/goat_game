@@ -37,11 +37,12 @@ Object.assign(GameScene.prototype, {
     this.fling = null; this.windHits = 0;                            // the Cyclone: how many of its small tornadoes have caught you this room
     // room 75 stays shut until the elder goat's horns are picked up; the Cyclone's until the wind stops
     this.exitLocked = !!(room.boss && (room.boss.cornerX !== undefined || room.boss.finalStand || room.boss.ambush)) || !!room.rescue;   // room 170's: until you step through the portal
-    this.rescue = null; this.rescueDone = false;                     // the Elder Goat's last room: the Cyclone's rescue (rescue.js)
+    this.handScene = null; this.handDone = false;                    // room 230: the sky tears open and the hand reaches out (handscene.js)
+    this.rescue = null; this.rescueDone = false;                   // the Elder Goat's last room: the Cyclone's rescue (rescue.js)
     // boss rooms: the shockwave travels along the floor the player spawns on
     this.groundY = this.floorBelow(spawn);
     if (room.boss) {
-      const Kind = room.boss.cyclone ? Cyclone : Boss;
+      const Kind = room.boss.cyclone ? Cyclone : room.boss.hand ? Hand : Boss;
       this.boss = new Kind(this, room.boss, this.groundY);
       if (room.finale) this.addLeapPad(room.finale.leapX, this.groundY);
     }
@@ -51,6 +52,8 @@ Object.assign(GameScene.prototype, {
     if (room.merchant) this.spawnJeff(room.jeffX || 100, { stay: !!room.jeffStays });   // the Merchant's room: Jeff and his stall
     this.lightning = null;
     if (room.lightning) this.setupLightning(room.lightning);                     // the True Eye: a strike on your spot every 10s
+    this.wallSpikes = null;
+    if (room.wallSpikes) this.setupWallSpikes(room.wallSpikes);                  // 181-199: spikes lunge out of the walls
     if (room.hint) this.time.delayedCall(700, () => this.toast(room.hint));
 
     this.doorway = null;

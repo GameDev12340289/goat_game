@@ -95,4 +95,63 @@ Object.assign(GameScene.prototype, {
   },
 });
 
+// Wall spikes (room.wallSpikes = { every, warn, len }), rooms 181-199: every `every` seconds a patch of wall near the goat
+// shows a flickering tip for `warn` seconds, then a row of spikes lunges out of it, holds, and slides back. Any wall will do:
+// the room's edges, hurdles, the climb walls. A hit goes through hurt() like any other hazard.
+Object.assign(GameScene.prototype, {
+  setupWallSpikes(cfg) {
+    const g = this.add.graphics().setDepth(6);
+    this.roomObjs.push(g);
+    const c = { every: 3.5, warn: 0.7, len: 3, ...cfg };
+    this.wallSpikes = { g, cfg: c, timer: c.every, list: [] };
+  },
+
+  // a random wall cell near the goat: an open tile with solid rock on one side. Returns { x, y, dir, len } or null
+  pickWallSpot() {
+    const T = CFG.TILE, p = this.player, len = this.wallSpikes.cfg.len, spots = [];
+    for (let r = 1; r < CFG.ROWS - 2; r++) {
+      for (let c = 0; c < CFG.COLS; c++) {
+        if (this.isSolid(c, r) || Math.abs(c * T + 4 - p.centerX) > 90 || Math.abs(r * T + 4 - p.centerY) > 44) continue;
+        for (const dir of [1, -1]) {
+          if (!this.isSolid(c - dir, r)) continue;                       // the wall it grows out of
+          let n = 0;
+          while (n < len && !this.isSolid(c + dir * n, r)) n++;          // how far it can reach before the next wall
+          if (n >= 2) spots.push({ x: dir > 0 ? c * T : (c + 1) * T, y: r * T, dir, len: n * T });
+        }
+      }
+    }
+    return spots.length ? Phaser.Utils.Array.GetRandom(spots) : null;
+  },
+
+  // returns true if a spike caught the player
+  updateWallSpikes(dt) {
+    const W = this.wallSpikes, c = W.cfg, g = W.g;
+    W.timer -= dt;
+    if (W.timer <= 0) {
+      W.timer = c.every;
+      const s = this.pickWallSpot();
+      if (s) W.list.push({ ...s, t: 0 });
+    }
+    g.clear();
+    let hit = false;
+    for (const s of W.list) {
+      s.t += dt;
+      const t = s.t - c.warn;
+      let L;
+      if (t < 0) L = 2 + (Math.floor(s.t * 30) % 2);                                    // peeking tip + jitter: the warning
+      else if (t < 0.1) L = 2 + (s.len - 2) * t / 0.1;
+      else if (t < 0.7) L = s.len;
+      else L = Math.max(0, s.len * (1 - (t - 0.7) / 0.15));
+      s.done = t >= 0.85;
+      if (L <= 0) continue;
+      g.fillStyle(t < 0 ? 0xe8443c : 0xe8ecff);
+      const x0 = s.x, d = s.dir;
+      for (const dy of [0, 4]) g.fillTriangle(x0, s.y + dy, x0, s.y + dy + 4, x0 + d * L, s.y + dy + 2);
+      if (t >= 0 && L >= 5 && this.overlapsPlayer(d > 0 ? x0 : x0 - L, s.y, L, CFG.TILE)) hit = true;
+    }
+    W.list = W.list.filter(s => !s.done);
+    return hit;
+  },
+});
+
 const LIGHTNING_STRIKE_TIME = 0.28;   // seconds the bolt stays on screen (the hit is checked on its first frame)

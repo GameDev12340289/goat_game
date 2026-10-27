@@ -16,7 +16,7 @@ Object.assign(GameScene.prototype, {
       if (morePartsLeft) this.loadRoom(this.roomIndex, this.part + 1);
       else {
         const next = this.roomIndex + 1;
-        if (next >= LEVELS.length) return this.finish();   // leaving the last room (210) ends the run
+        if (next >= LEVELS.length) return this.finish();   // leaving the last room (235) ends the run
         this.loadRoom(next);
       }
       cam.fadeIn(180, ...GameScene.FADE_RGB);
@@ -52,7 +52,7 @@ Object.assign(GameScene.prototype, {
     this.cameras.main.fadeIn(300, ...GameScene.FADE_RGB);
     const m = Math.floor(this.time_ / 60), s = (this.time_ % 60).toFixed(2).padStart(5, '0');
     this.game.events.emit('complete',
-      `LEVEL COMPLETE\nYou outran the elder goat ..... for now\n\nTime ${m}:${s}\nDeaths ${this.deaths}\n\nENTER  menu / shop      R  play again`);
+      `LEVEL COMPLETE\nYou outran the colourless hand ..... for now\n\nTime ${m}:${s}\nDeaths ${this.deaths}\n\nENTER  menu / shop      R  play again`);
   },
 
   // Odin's Blessing: every drop (coins, horns) is x5

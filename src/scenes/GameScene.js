@@ -168,6 +168,7 @@ class GameScene extends Phaser.Scene {
     }
     if (this.fling) return this.updateFling(dt);
     if (this.rescue) return this.updateRescue(dt);
+    if (this.handScene) return this.updateHandScene(dt);
 
     let inp = this.readInput();
     this.time_ += dt;

@@ -9,6 +9,8 @@ Object.assign(GameScene.prototype, {
     this.updateFinale();
     const rescue = this.room.rescue;
     if (rescue && !this.rescueDone && p.x >= rescue.triggerX) return this.startRescue();
+    const hand = this.room.handScene;
+    if (hand && !this.handDone && !this.handScene && p.x >= hand.triggerX && p.state === 'normal' && p.solid(p.x, p.y + 1)) return this.startHandScene();
     if (this.updateBoss(dt)) return;
     this.updateJeff();
     const h = this.hornDrop;
@@ -18,6 +20,7 @@ Object.assign(GameScene.prototype, {
     if (this.tornadoes.length) this.updateTornadoes(dt);
     if (this.winds) this.winds.update(dt, p);
     if (this.lightning) this.updateLightning(dt);
+    if (this.wallSpikes && this.updateWallSpikes(dt)) return this.hurt();
     if (this.swirl) this.updateSwirl(dt);
     if (this.doorway) this.updateDoorway(dt);
     if (this.warps.length && this.updateWarps(dt)) return;          // a distortion spot got you
