@@ -46,14 +46,14 @@ class Hand extends Boss {
     return this.state === 'grasp' && this.age > 0.4 && this.touches(p);
   }
 
-  // ---- the second attack: the hand grasps the sky and drags a slab of it down onto a patch of floor --------------------
-  // the patch flashes red while the hand pulls (cwarn); get off it. Then the sky slams down (cpull) and sits there for a
-  // moment (cdown) - anyone still under it is crushed into mist.
+  // ---- the second attack: the hand grabs the sky and pulls it down, making a beam of raw pressure ---------------------
+  // the patch of floor flashes red while the hand drags the sky into a funnel (cwarn); get off it. Then the pressure
+  // lances down onto the patch (cpull) and stays for a moment (cdown) - anyone still in it is crushed into mist.
   startCrush(p) {
     this.state = 'cwarn'; this.stateT = this.cfg.crushWarn; this.rift = 0;
     this.zx = Phaser.Math.Clamp(p.centerX + p.vx * 0.5 + Phaser.Math.Between(-10, 10), this.zw / 2 + 8, CFG.W - this.zw / 2 - 8);
-    this.slabY = -10; this.noDeflect = true;
-    this.scene.game.events.emit('toast', 'The hand grasps the sky...');
+    this.slabY = 8; this.slabY0 = 8; this.noDeflect = true;
+    this.scene.game.events.emit('toast', 'The hand grasps the sky... and pulls');
   }
 
   inZone(p) { return p.x < this.zx + this.zw / 2 && p.x + CFG.PW > this.zx - this.zw / 2; }
@@ -64,11 +64,11 @@ class Hand extends Boss {
     if (this.state === 'cwarn') {
       const u = 1 - this.stateT / this.cfg.crushWarn;
       this.rift = Math.min(1, this.rift + dt * 3);
-      this.slabY = -10 + 40 * u * u + Math.sin(this.t * 40) * u * 1.5;            // the hand drags it down a little, straining
+      this.slabY = 8 + 34 * u * u + Math.sin(this.t * 40) * u * 1.5;              // the hand drags the sky down, straining
       if (this.stateT <= 0) { this.state = 'cpull'; this.stateT = 0.22; this.slabY0 = this.slabY; }
     } else if (this.state === 'cpull') {
-      const u = Math.min(1, 1 - this.stateT / 0.22);
-      this.slabY = this.slabY0 + (this.groundY - this.slabY0) * u * u;
+      const u = Math.min(1, 1 - this.stateT / 0.22);                              // the pulled sky lets go: the beam lances down
+      this.slabY = this.slabY0 + (this.groundY - this.slabY0) * u;
       hit = this.slabY >= p.y && this.inZone(p);
       if (this.stateT <= 0) {
         this.state = 'cdown'; this.stateT = 0.9; this.slabY = this.groundY;
@@ -77,11 +77,12 @@ class Hand extends Boss {
       }
     } else {
       this.mistT -= dt;
+      this.scene.cameras.main.shake(60, 0.005);                                   // the pressure rattles everything while it lasts
       if (this.mistT <= 0) { this.mistT = 0.1; this.scene.burst(this.zx + Phaser.Math.Between(-24, 24), this.groundY - Phaser.Math.Between(2, 20), 0xdcdcdc, 3, 30); }
       hit = this.inZone(p);
       if (this.stateT <= 0) { this.state = 'idle'; this.stateT = this.cfg.every * (0.85 + Math.random() * 0.3); this.noDeflect = false; }
     }
-    if (hit) this.scene.burst(p.centerX, p.centerY, 0xf0f0f0, 30, 70);              // crushed into mist
+    if (hit) this.scene.burst(p.centerX, p.centerY, 0xf0f0f0, 30, 70);              // crushed into mist by the pressure
     this.draw();
     return hit;
   }
@@ -95,15 +96,31 @@ class Hand extends Boss {
       g.lineStyle(1, 0xff6060, on ? 1 : 0.4); g.strokeRect(x0 + 0.5, fy - 69.5, zw - 1, 69);
     }
     if (this.rift > 0 && this.state === 'cwarn') Hand.rift(g, zx, this.rift, this.t, 50, 0.3);
-    const by = this.slabY;                                                           // the slab of sky: pale, with a torn, jagged bottom
-    g.fillStyle(0xf2f2f2, 0.97); g.fillRect(x0, -60, zw, by + 60);
-    g.fillStyle(0xbdbdbd, 1); g.fillRect(x0, -60, 2, by + 60); g.fillRect(x0 + zw - 2, -60, 2, by + 60);
-    g.fillStyle(0x6a6a6a, 1);
-    for (let i = 0; i < 7; i++) g.fillTriangle(x0 + i * zw / 7, by, x0 + (i + 1) * zw / 7, by, x0 + (i + 0.5) * zw / 7, by + 5 + (i % 3) * 3);
-    g.lineStyle(Math.max(3, 14 * s), 0x3a3a3a, 1); g.lineBetween(zx, -8, zx, by - 12);   // the arm coming down from the top of the sky
-    g.lineStyle(Math.max(2, 11 * s), 0x9a9a9a, 1); g.lineBetween(zx, -8, zx, by - 12);
-    g.save(); g.translateCanvas(zx, by + 6); g.rotateCanvas(Math.PI / 2);            // fingers clamped over the torn edge
-    Hand.paint(g, 0, 40 * s, this.t, { s, spread: 0.15 });
+    // the hand has a fistful of sky and drags it down: the sky stretches into a funnel pinched in the hand's grip
+    const tipY = this.state === 'cwarn' ? this.slabY : this.slabY0, pull = this.state === 'cwarn' ? 1 - this.stateT / this.cfg.crushWarn : 1;
+    g.fillStyle(0xf4f4f4, 0.95); g.fillTriangle(x0 - 14, -10, x0 + zw + 14, -10, zx, tipY + 4);
+    g.lineStyle(1, 0x555555, 0.9); g.lineBetween(x0 - 14, -10, zx, tipY + 4); g.lineBetween(x0 + zw + 14, -10, zx, tipY + 4);
+    for (let i = 1; i < 4; i++) { g.lineStyle(1, 0x999999, 0.6); g.lineBetween(zx + (i - 2) * 9 * (1 + pull), -10, zx, tipY + 4); }   // creases where the sky bunches
+    // the beam of raw pressure: only once the sky is let go (cpull/cdown), a column from the hand straight down to the floor
+    if (this.state !== 'cwarn') {
+      const front = this.slabY, h = front - tipY, flick = Math.sin(this.t * 60) * 2, bw = zw * 0.5 + flick;
+      g.fillStyle(0xffffff, 0.22); g.fillRect(zx - zw / 2 - 4, tipY, zw + 8, h);                         // the squeezed air around it
+      g.fillStyle(0xdddddd, 0.55); g.fillRect(zx - bw, tipY, bw * 2, h);
+      g.fillStyle(0xffffff, 1); g.fillRect(zx - bw * 0.45, tipY, bw * 0.9, h);                           // white-hot core
+      g.lineStyle(1, 0x222222, 0.9); g.lineBetween(zx - bw, tipY, zx - bw, front); g.lineBetween(zx + bw, tipY, zx + bw, front);
+      for (let i = 0; i < 9; i++) {                                                                      // pressure rings rushing down the column
+        const y = tipY + ((this.t * 220 + i * 22) % Math.max(20, h + 22));
+        if (y > front) continue;
+        g.lineStyle(2, 0x333333, 0.7); g.strokeEllipse(zx, y, zw + 10, 7);
+        g.lineStyle(1, 0xffffff, 0.9); g.strokeEllipse(zx, y, zw - 6, 5);
+      }
+      g.fillStyle(0xffffff, 0.9); g.fillEllipse(zx, front, zw + 20, 10);                                 // the glare where it hits the floor
+      g.fillStyle(0x222222, 0.5); g.fillRect(x0 - 2, fy - 1, zw + 4, 1);
+    }
+    g.lineStyle(Math.max(3, 14 * s), 0x3a3a3a, 1); g.lineBetween(zx + 10, -8, zx + 6, tipY - 10);        // the arm coming out of the rift above
+    g.lineStyle(Math.max(2, 11 * s), 0x9a9a9a, 1); g.lineBetween(zx + 10, -8, zx + 6, tipY - 10);
+    g.save(); g.translateCanvas(zx, tipY + 6); g.rotateCanvas(Math.PI / 2);                              // fingers clenched around the bunched sky
+    Hand.paint(g, 0, 40 * s, this.t, { s, spread: this.state === 'cwarn' ? 0.1 : 0.7 });
     g.restore();
   }
 
