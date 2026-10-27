@@ -55,7 +55,7 @@ Object.assign(GameScene.prototype, {
   // returns true if a spot killed the player. Within PULL px a spot drags you towards it (harder the closer you are, but a
   // full-speed run away from it still wins until you're nearly on top of it)
   updateWarps(dt) {
-    const p = this.player, PULL = 46;
+    const p = this.player, PULL = this.room.warpPull || 46;
     for (const w of this.warps) {
       w.t += dt;
       const dx = w.x - p.centerX, dy = w.y - p.centerY, d = Math.hypot(dx, dy);

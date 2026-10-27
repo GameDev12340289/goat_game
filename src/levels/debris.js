@@ -112,6 +112,7 @@ LEVELS.push(...UNRAVEL_NAMES.map((name, i) => {
       else g.put(18, 20 + (i % 3) * 4, 'S');
     }),
   };
+  if (n === 225) room.warpPull = 30;                     // easier: the spots only drag you in from closer by (default 46)
   if (n === 230) room.handScene = { triggerX: 280 };     // the end of the road: the sky tears open behind you, then the chase (231-235)
   if (lv >= 2) {
     const gap = Math.max(2.4, 6.5 - 0.35 * lv);
